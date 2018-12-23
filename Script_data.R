@@ -30,22 +30,5 @@
     replicate(5,numeric(0), simplify = F),
     c("id_dim_geo","geo_point","nom_dept","nom_region","nom_commune")))
   
-  id_dechet <- 001
-  
-for (row in 1:nrow(data_dechet)) {
-  for (roww in 1:nrow(data_INSEE)) {
-    if(!is.null(data_dechet[row]$CODE.INSEE) && 
-       !is.null(data_INSEE[roww]$INSEE_COM) && 
-       data_dechet[row]$CODE.INSEE == data_INSEE[roww]$INSEE_COM){
-      rbind(ED_dimensionDechet,list(id_dechet,
-                                    data_dechet[row]$GROUPE.DE.DECHETS ,
-                                    data_dechet[row]$SOUS.GROUPE.DECHETS,
-                                    data_dechet[row]$DESCRIPTION.PHYSIQUE,
-                                    data_dechet[row]$CATEGORIE,
-                                    data_dechet[row]$FAMILLE.IN,
-                                    data_dechet[row]$VOLUME.EQUIVALENT.CONDINIONNE))
-      id_dechet <- id_dechet + 1
-    }
-  }
-}
+
 
