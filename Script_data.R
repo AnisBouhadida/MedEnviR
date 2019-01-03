@@ -1,6 +1,5 @@
 # initialisation des packages:
 library(tidyverse)
-library(skimr)
 
 # Importation des donnees et Transformation en tibble:
   data_dechet <- read_delim(file = "./data/dechets-declares-au-31-12-2016.csv", ";",
