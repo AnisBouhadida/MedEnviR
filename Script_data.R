@@ -73,7 +73,9 @@ library(tidyverse)
                                                              min=200, max=7000)))
 
 # Exportation de l'entrepot de donnees : 
-  dir.create("EntrepotDeDonnees")
+  if (!file.exists("EntrepotDeDonnees")){
+    dir.create("EntrepotDeDonnees")
+    }
   write.csv(ED_dimensionDechet,file = "./EntrepotDeDonnees/ED_dimensionDechet.csv", 
             row.names = FALSE)
   write.csv(ED_dimensionGeo,file = "./EntrepotDeDonnees/ED_dimensionGeo.csv", 
