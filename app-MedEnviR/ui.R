@@ -22,7 +22,7 @@ shinyUI(fluidPage(
                    "Number of bins:",
                    min = 1,
                    max = 60,
-                   value = 30)
+                   value = 20)
     ),
     
     # Show a plot of the generated distribution
