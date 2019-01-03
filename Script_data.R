@@ -26,19 +26,16 @@ library(skimr)
   
   ED_dimensionDechet <-select(data_dechet_clean,
                               `GROUPE DE DECHETS`,`SOUS-GROUPE DE DECHETS`,
-                              `DESCRIPTION PHYSIQUE`,CATEGORIE,`FAMILLE IN`,
-                              `VOLUME EQUIVALENT CONDITIONNE`) %>% tbl_df() %>%
+                              `DESCRIPTION PHYSIQUE`,CATEGORIE,`FAMILLE IN`) %>% tbl_df() %>%
     add_column(id_dim_dechet=round(runif(nrow(data_dechet_clean), 
                                          min=1, max=7000))) %>%
     distinct(`GROUPE DE DECHETS`,`SOUS-GROUPE DE DECHETS`,
-             `DESCRIPTION PHYSIQUE`,CATEGORIE,`FAMILLE IN`,
-             `VOLUME EQUIVALENT CONDITIONNE`,.keep_all = TRUE)
+             `DESCRIPTION PHYSIQUE`,CATEGORIE,`FAMILLE IN`,.keep_all = TRUE)
   
-  ED_dimensionRadioActivite <- select(data_dechet_clean,`ACTIVITE ( Bq)`,
-                                      MAJORATION,`PRINCIPAUX RADIONUCLEIDES`) %>% 
+  ED_dimensionRadioActivite <- select(data_dechet_clean,`PRINCIPAUX RADIONUCLEIDES`) %>% 
     tbl_df() %>% add_column(id_dim_radio=round(runif(nrow(data_dechet_clean),
                                                      min=1, max=7000)))%>%
-    distinct(`ACTIVITE ( Bq)`,`PRINCIPAUX RADIONUCLEIDES`,MAJORATION,.keep_all = TRUE)
+    distinct(`PRINCIPAUX RADIONUCLEIDES`,.keep_all = TRUE)
   
   ED_dimensionProducteurDechet <-select(data_dechet_clean,`NOM DU SITE`) %>% 
     tbl_df() %>% 
@@ -53,12 +50,10 @@ library(skimr)
   
   table_fait1 <- left_join(table_fait0,ED_dimensionDechet, 
                            by= c("GROUPE DE DECHETS","SOUS-GROUPE DE DECHETS",
-                                 "DESCRIPTION PHYSIQUE","CATEGORIE","FAMILLE IN",
-                                 "VOLUME EQUIVALENT CONDITIONNE"))
+                                 "DESCRIPTION PHYSIQUE","CATEGORIE","FAMILLE IN"))
   
   table_fait2 <- left_join(table_fait1,ED_dimensionRadioActivite, 
-                           by= c("ACTIVITE ( Bq)","PRINCIPAUX RADIONUCLEIDES",
-                                 "MAJORATION"))
+                           by= c("PRINCIPAUX RADIONUCLEIDES"))
   
   table_fait3 <- left_join(table_fait2,ED_dimensionProducteurDechet, 
                            by= c("NOM DU SITE"))
@@ -66,7 +61,7 @@ library(skimr)
 # Creation du fait :
   ED_faitRepartitionPoluant <- select(table_fait3,
                                       id_dim_geo,id_dim_dechet,
-                                      id_dim_radio,id_dim_producteur)
+                                      id_dim_radio,id_dim_producteur,`VOLUME EQUIVALENT CONDITIONNE`,`ACTIVITE ( Bq)`,MAJORATION)
   ED_faitRepartitionPoluant <-add_column(ED_faitRepartitionPoluant,
                                          id_fait=round(runif(nrow(ED_faitRepartitionPoluant), 
                                                              min=200, max=7000)))
