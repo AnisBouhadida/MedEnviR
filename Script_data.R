@@ -1,32 +1,37 @@
+# ================================================================================
+# Etudiants : * Anis BOUHADIDA (Universite Paris 13)
+#             * Radouane ELAYACHY (Universite Paris Descarte)
+
+# Fichier : * Importation et nettoyage des donnees initiales 
+#           * Exportation de l'entrepot au format .csv  
+# ================================================================================
+
 # initialisation des packages:
 library(tidyverse)
 
 # Importation des donnees et Transformation en tibble:
   data_dechet <- read_delim(file = "./data/dechets-declares-au-31-12-2016.csv", ";",
-                            locale = locale(encoding = "ISO-8859-1"),na=c("","NA"), escape_double = F, trim_ws = F) %>% 
-    tbl_df()
+                            locale = locale(encoding = "ISO-8859-1"),na=c("","NA"), 
+                            escape_double = F, trim_ws = F) %>% tbl_df()
   
   data_INSEE <- read_delim(file = "./data/code-postal-code-insee-2015.csv", ";", 
-                           locale = locale(encoding = "ISO-8859-1"),na=c("","NA"), escape_double = F, trim_ws = F) %>% 
-    tbl_df()
+                           locale = locale(encoding = "ISO-8859-1"),na=c("","NA"), 
+                           escape_double = F, trim_ws = F) %>% tbl_df()
   
-# Nettoyage des donnees: 
-  
+# Nettoyage des donnees:
   data_dechet_clean <- unique(data_dechet)
   data_INSEE_clean <- unique(data_INSEE)
 
 # Extraction des variables interessantes et creation des dimensions:
-  ED_dimensionGeo <-select(data_INSEE_clean,
-                           `Geo Point`,INSEE_COM,NOM_COM,
-                           NOM_DEPT,NOM_REG,Code_postal) %>% 
-    tbl_df() %>% add_column(id_dim_geo=round(runif(nrow(data_INSEE_clean),
-                                                   min=1, max=40000)))%>%
-    distinct(`Geo Point` ,INSEE_COM,.keep_all = TRUE)
+  ED_dimensionGeo <-select(data_INSEE_clean,`Geo Point`,INSEE_COM,
+                           NOM_COM,NOM_DEPT,NOM_REG,Code_postal)%>% tbl_df() %>% 
+                    add_column(id_dim_geo=round(runif(nrow(data_INSEE_clean),min=1, max=40000)))%>%
+                    distinct(`Geo Point`,INSEE_COM,.keep_all = TRUE)
   
-  ED_dimensionDechet <-select(data_dechet_clean,
-                              `GROUPE DE DECHETS`,`SOUS-GROUPE DE DECHETS`,
-                              `DESCRIPTION PHYSIQUE`,CATEGORIE,`FAMILLE IN`) %>% tbl_df() %>%
-    add_column(id_dim_dechet=round(runif(nrow(data_dechet_clean), 
+  ED_dimensionDechet <- select(data_dechet_clean,`GROUPE DE DECHETS`,
+                              `SOUS-GROUPE DE DECHETS`,`DESCRIPTION PHYSIQUE`,
+                               CATEGORIE,`FAMILLE IN`) %>% tbl_df() %>%
+                        add_column(id_dim_dechet=round(runif(nrow(data_dechet_clean), 
                                          min=1, max=7000))) %>%
     distinct(`GROUPE DE DECHETS`,`SOUS-GROUPE DE DECHETS`,
              `DESCRIPTION PHYSIQUE`,CATEGORIE,`FAMILLE IN`,.keep_all = TRUE)
