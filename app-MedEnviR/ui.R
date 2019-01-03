@@ -23,6 +23,7 @@ shinyUI(fluidPage(
                    min = 1,
                    max = 60,
                    value = 20)
+
     ),
     
     # Show a plot of the generated distribution
