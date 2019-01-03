@@ -1,70 +1,90 @@
+# initialisation des packages:
 library(tidyverse)
 
-# Importation des donnees et Transformation en tibble pour un manipulation plus facile:
-  # Donnees dechets poluants: 
+# Importation des donnees et Transformation en tibble:
   data_dechet <- read.csv(file = "./data/dechets-declares-au-31-12-2016.csv", 
                           header = TRUE, sep = ";", stringsAsFactors = FALSE ) %>% 
-    tbl_df() %>% drop_na() 
+    tbl_df()
   
   data_INSEE <- read.csv(file = "./data/code-postal-code-insee-2015.csv", 
                          header = TRUE, sep = ";", stringsAsFactors = FALSE ) %>% 
-    tbl_df() %>% drop_na() 
+    tbl_df() 
+  
+# Nettoyage des donnees: 
+  data_dechet_clean <- data_dechet[complete.cases(data_dechet),]
+  data_dechet_clean <- unique(data_dechet_clean)
 
-# Extraction des variables et creation des dimensions:
-  ED_dimensionGeo <-select(data_INSEE,
-                           Geo.Point,INSEE_COM,NOM_COM,NOM_DEPT,NOM_REG,Code_postal) %>% 
-    tbl_df() %>% add_column(id_dim_geo=round(runif(nrow(data_INSEE), min=1, max=40000)))%>%
+  data_INSEE_clean <- data_INSEE[complete.cases(data_INSEE),]
+  data_INSEE_clean <- unique(data_INSEE_clean)
+
+# Extraction des variables interessantes et creation des dimensions:
+  ED_dimensionGeo <-select(data_INSEE_clean,
+                           Geo.Point,INSEE_COM,NOM_COM,
+                           NOM_DEPT,NOM_REG,Code_postal) %>% 
+    tbl_df() %>% add_column(id_dim_geo=round(runif(nrow(data_INSEE_clean),
+                                                   min=1, max=40000)))%>%
     distinct(Geo.Point,INSEE_COM,.keep_all = TRUE)
-  ###
-  ED_dimensionDechet <-select(data_dechet,
+  
+  ED_dimensionDechet <-select(data_dechet_clean,
                               GROUPE.DE.DECHETS,SOUS.GROUPE.DE.DECHETS,
                               DESCRIPTION.PHYSIQUE,CATEGORIE,FAMILLE.IN,
                               VOLUME.EQUIVALENT.CONDITIONNE) %>% tbl_df() %>%
-    add_column(id_dim_dechet=round(runif(nrow(data_dechet), min=1, max=7000))) %>%
+    add_column(id_dim_dechet=round(runif(nrow(data_dechet_clean), 
+                                         min=1, max=7000))) %>%
     distinct(GROUPE.DE.DECHETS,SOUS.GROUPE.DE.DECHETS,
              DESCRIPTION.PHYSIQUE,CATEGORIE,FAMILLE.IN,
              VOLUME.EQUIVALENT.CONDITIONNE,.keep_all = TRUE)
-  ###
-  ED_dimensionRadioActivite <- select(data_dechet,ACTIVITE...Bq.,
+  
+  ED_dimensionRadioActivite <- select(data_dechet_clean,ACTIVITE...Bq.,
                                       MAJORATION,PRINCIPAUX.RADIONUCLEIDES) %>% 
-    tbl_df() %>% add_column(id_dim_radio=round(runif(nrow(data_dechet), min=1, max=7000)))%>%
+    tbl_df() %>% add_column(id_dim_radio=round(runif(nrow(data_dechet_clean),
+                                                     min=1, max=7000)))%>%
     distinct(ACTIVITE...Bq.,PRINCIPAUX.RADIONUCLEIDES,MAJORATION,.keep_all = TRUE)
-  ###
-  ED_dimensionProducteurDechet <-select(data_dechet,NOM.DU.SITE) %>% tbl_df() %>% 
-    add_column(id_dim_producteur=round(runif(nrow(data_dechet), min=1, max=7000)))%>%
+  
+  ED_dimensionProducteurDechet <-select(data_dechet_clean,NOM.DU.SITE) %>% 
+    tbl_df() %>% 
+    add_column(id_dim_producteur=round(runif(nrow(data_dechet_clean), 
+                                             min=1, max=7000)))%>%
     distinct(NOM.DU.SITE,.keep_all = TRUE)
+  
+  # Matching des id avec la table dechet:
 
+  table_fait0 <- left_join(data_dechet_clean,ED_dimensionGeo, 
+                           by= c("CODE.INSEE"="INSEE_COM"))
   
+  table_fait1 <- left_join(table_fait0,ED_dimensionDechet, 
+                           by= c("GROUPE.DE.DECHETS","SOUS.GROUPE.DE.DECHETS",
+                                 "DESCRIPTION.PHYSIQUE","CATEGORIE","FAMILLE.IN",
+                                 "VOLUME.EQUIVALENT.CONDITIONNE"))
   
+  table_fait2 <- left_join(table_fait1,ED_dimensionRadioActivite, 
+                           by= c("ACTIVITE...Bq.","PRINCIPAUX.RADIONUCLEIDES",
+                                 "MAJORATION"))
   
+  table_fait3 <- left_join(table_fait2,ED_dimensionProducteurDechet, 
+                           by= c("NOM.DU.SITE"))
   
-  
-  
-  
-  
-  
-  
-  
-# Entrepot de donnees:
-  
-  ED_faitRepartitionPoluant <- data.frame() %>% tbl_df()
-  ED_faitRepartitionPoluant <- select(ED_dimensionDechet,id_dim_dechet)
-  ED_faitRepartitionPoluant <-add_column(ED_faitRepartitionPoluant,id_fait=round(runif(6226, min=200, max=7000)))
-  ED_faitRepartitionPoluant <- select(ED_dimensionRadioActivite,id_dim_radio)%>% bind_cols(ED_faitRepartitionPoluant)
-  ED_faitRepartitionPoluant <- select(ED_dimensionProducteurDechet,id_dim_producteur)%>% bind_cols(ED_faitRepartitionPoluant)
+# Creation du fait :
+  ED_faitRepartitionPoluant <- select(table_fait3,
+                                      id_dim_geo,id_dim_dechet,
+                                      id_dim_radio,id_dim_producteur)
+  ED_faitRepartitionPoluant <-add_column(ED_faitRepartitionPoluant,
+                                         id_fait=round(runif(nrow(ED_faitRepartitionPoluant), 
+                                                             min=200, max=7000)))
 
-  test <-select(ED_dimensionGeo,INSEE_COM,id_dim_geo) %>% tbl_df()
-  
-  test1 <- inner_join(test, data_dechet, by = c("INSEE_COM" = "CODE.INSEE")) %>% 
-    drop_na() %>% distinct(INSEE_COM,NOM.DU.SITE,DESCRIPTION.PHYSIQUE,VOLUME.EQUIVALENT.CONDITIONNE, .keep_all = TRUE)
-  
-  
-  test2 <- inner_join(test1, ED_dimensionDechet, by = NULL, copy = FALSE) %>% 
-    drop_na() %>% distinct(INSEE_COM,NOM.DU.SITE,DESCRIPTION.PHYSIQUE,VOLUME.EQUIVALENT.CONDITIONNE, .keep_all = TRUE)
-  
-  test3 <- inner_join(test2, ED_faitRepartitionPoluant, by = c("id_dim_dechet"), copy = FALSE) %>% 
-    drop_na() %>% distinct(INSEE_COM,NOM.DU.SITE,DESCRIPTION.PHYSIQUE,VOLUME.EQUIVALENT.CONDITIONNE, .keep_all = TRUE)
-  
-  test4 <- select(test3,id_dim_dechet,id_dim_producteur, id_dim_radio, id_dim_geo) %>% 
-    tbl_df() %>% add_column(id_fait=round(runif(5633, min=200, max=7000)))
-  
+# Exportation de l'entrepot de donnees : 
+  dir.create("EntrepotDeDonnees")
+  write.csv(ED_dimensionDechet,file = "./EntrepotDeDonnees/ED_dimensionDechet.csv", 
+            row.names = FALSE)
+  write.csv(ED_dimensionGeo,file = "./EntrepotDeDonnees/ED_dimensionGeo.csv", 
+            row.names = FALSE)
+  write.csv(ED_dimensionProducteurDechet,file = "./EntrepotDeDonnees/ED_dimensionProducteurDechet.csv", 
+            row.names = FALSE)
+  write.csv(ED_dimensionRadioActivite,file = "./EntrepotDeDonnees/ED_dimensionRadioActivite.csv", 
+            row.names = FALSE)
+  write.csv(ED_faitRepartitionPoluant,file = "./EntrepotDeDonnees/ED_faitRepartitionPoluant.csv", 
+            row.names = FALSE)
+
+# Nettoyage de l'environnement et des objets temporaires:
+rm(data_dechet,data_INSEE)
+rm(table_fait0,table_fait1,table_fait2,table_fait3)
