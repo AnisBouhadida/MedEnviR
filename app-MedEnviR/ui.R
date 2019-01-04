@@ -1,36 +1,30 @@
-#
-# This is the user-interface definition of a Shiny web application. You can
-# run the application by clicking 'Run App' above.
-#
-# Find out more about building applications with Shiny here:
-# 
-#    http://shiny.rstudio.com/
-#
+# ================================================================================
+# Etudiants : * Anis BOUHADIDA (Universite Paris 13)
+#             * Radouane ELAYACHY (Universite Paris Descarte)
+
+# Fichier : * Contient tous les elements de l'interface 
+# ================================================================================
 
 library(shiny)
-
-# Define UI for application that draws a histogram
+# UI de l'application qui explore l'entrepot de donnees:
 shinyUI(fluidPage(
   
   # Application title
   titlePanel("Polluants en France"),
   
-  # Sidebar with a slider input for number of bins 
+  # Sidebar avec bouttons radio et un selectInput : 
   sidebarLayout(
     sidebarPanel(
-       sliderInput("bins",
-                   "Number of bins:",
-                   min = 1,
-                   max = 60,
-                   value = 20)
-
+       radioButtons(inputId = "dechetSelectInput" ,label = "Dechets selon :",
+                    choices = list("Groupe","Sous-groupe","Famille")),
+       uiOutput(outputId = "dechetSelectOutput")
     ),
     
-    # Show a plot of the generated distribution
+    # mainPanel avec 2 tabPanel, 1 pour la carte et l'autre pour le tableau:
     mainPanel(
-       plotOutput("distPlot")
-    )
+      tabsetPanel(tabPanel("Carte"),
+                  tabPanel("Tableau",dataTableOutput(outputId = "selectOutput"))
+                  )
+      )
   )
 ))
-
-bravo
