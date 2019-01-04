@@ -24,8 +24,7 @@ shinyUI(fluidPage(
        selectInput("select", label = h3("Selectionner Ville"), 
                    choices = sort(ED_dimensionGeo$NOM_COM), selected = 1),
        selectInput("select", label = h3("Selectionner Region"), 
-                   choices = sort(ED_dimensionGeo$NOM_COM), selected = 1))
-    ),
+                   choices = sort(ED_dimensionGeo$NOM_COM), selected = 1)),
     
     # mainPanel avec 2 tabPanel, 1 pour la carte et l'autre pour le tableau:
     mainPanel(
@@ -34,4 +33,4 @@ shinyUI(fluidPage(
                   )
       )
   )
-)
+))
