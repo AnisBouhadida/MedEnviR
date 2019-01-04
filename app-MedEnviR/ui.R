@@ -12,18 +12,17 @@ library(leaflet)
 # UI de l'application qui explore l'entrepot de donnees:
 shinyUI(fluidPage(
   
-  titlePanel("Selectionner"),
-  
+  titlePanel(h1("Déchets radioactif et émission naturelle de Radon en France")),
 
   # Sidebar avec bouttons radio et un selectInput : 
   sidebarLayout(
     sidebarPanel(
-       radioButtons(inputId = "dechetSelectInput" ,label = "Dechets selon :",
+       radioButtons(inputId = "dechetSelectInput" ,label = h2("Dechets selon :"),
                     choices = list("Tous les groupes","Groupe","Sous-groupe","Famille")),
        uiOutput(outputId = "dechetSelectOutput"),
        
-       radioButtons(inputId = "geoSelectInput" ,label = "Afficher selon :",
-                    choices = list("France entière","Region","Departement","Commune")),
+       radioButtons(inputId = "geoSelectInput" ,label = h2("Afficher selon :"),
+                    choices = list("France entière","Region","Departement","Commune","Site")),
        uiOutput("geo")),
        
     
