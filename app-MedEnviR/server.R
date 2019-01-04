@@ -17,13 +17,13 @@ shinyServer(function(input, output) {
   output$dechetSelectOutput <- renderUI({
    switch(input$dechetSelectInput,
           "Groupe"= selectInput(
-            inputId = "selectInput",label = "Selectionnez ",
+            inputId = "selectAttrDechet",label = "Selectionnez ",
             choices = select(ED_dimensionDechet,`GROUPE DE DECHETS`)%>% drop_na()),
           "Sous-groupe"= selectInput(
-            inputId = "selectInput",label = "Selectionnez ",
+            inputId = "selectAttrDechet",label = "Selectionnez ",
             choices =select(ED_dimensionDechet,`SOUS-GROUPE DE DECHETS`)%>% drop_na()),
           "Famille" = selectInput(
-                inputId = "selectInput",label = "Selectionnez ",
+                inputId = "selectAttrDechet",label = "Selectionnez ",
                 choices =select(ED_dimensionDechet,`FAMILLE IN`)%>% drop_na()))})
   
   output$geo <- renderUI({
@@ -40,9 +40,9 @@ shinyServer(function(input, output) {
   
   output$selectOutput <- renderDataTable({
     ED_dimensionDechet %>% 
-      filter(`GROUPE DE DECHETS`==input$selectInput|
-               `SOUS-GROUPE DE DECHETS`==input$selectInput|
-               `FAMILLE IN`==input$selectInput) %>% 
+      filter(`GROUPE DE DECHETS`==input$selectAttrDechet|
+               `SOUS-GROUPE DE DECHETS`==input$selectAttrDechet|
+               `FAMILLE IN`==input$selectAttrDechet) %>% 
       left_join(ED_faitRepartitionPoluant,by=c("id_dim_dechet")) %>% 
       left_join(ED_dimensionProducteurDechet,by=c("id_dim_producteur")) %>%
       select(`NOM DU SITE`,`GROUPE DE DECHETS`,`SOUS-GROUPE DE DECHETS`,
