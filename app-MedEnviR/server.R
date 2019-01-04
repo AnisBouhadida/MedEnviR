@@ -41,55 +41,35 @@ shinyServer(function(input, output) {
   
   # affichage de la table selon critères sélectionnés
   output$tableSelectOutput <- renderDataTable({
-    if(input$dechetSelectInput != "Tous les groupes" & input$geoSelectInput !="France entière"){
-      ED_dimensionDechet %>% 
-        filter(`GROUPE DE DECHETS`==input$selectAttrDechet|
-                 `SOUS-GROUPE DE DECHETS`==input$selectAttrDechet|
-                 `FAMILLE IN`==input$selectAttrDechet) %>% 
-        left_join(ED_faitRepartitionPoluant,by=c("id_dim_dechet")) %>% 
-        left_join(ED_dimensionProducteurDechet,by=c("id_dim_producteur")) %>%
-        left_join(ED_dimensionGeo, by=c("id_dim_geo")) %>%
-        filter(`NOM_COM`==input$selectAttrGeo |
-                 `NOM_REG`==input$selectAttrGeo |
-                 `NOM_DEPT`==input$selectAttrGeo) %>%
-        select(`NOM DU SITE`,`GROUPE DE DECHETS`,`SOUS-GROUPE DE DECHETS`,
-               `DESCRIPTION PHYSIQUE`,`FAMILLE IN`, `VOLUME EQUIVALENT CONDITIONNE`,
-               `ACTIVITE ( Bq)`, `NOM_REG`)} 
+    table_temp<-ED_dimensionDechet %>% 
+      left_join(ED_faitRepartitionPoluant,by=c("id_dim_dechet")) %>% 
+      left_join(ED_dimensionProducteurDechet,by=c("id_dim_producteur")) %>%
+      left_join(ED_dimensionGeo, by=c("id_dim_geo"))
+      
+      if(input$dechetSelectInput != "Tous les groupes" & input$geoSelectInput !="France entière"){
+          table_temp %>%
+          filter(`GROUPE DE DECHETS`==input$selectAttrDechet|
+                   `SOUS-GROUPE DE DECHETS`==input$selectAttrDechet|
+                   `FAMILLE IN`==input$selectAttrDechet) %>% 
+          filter(`NOM_COM`==input$selectAttrGeo |
+                   `NOM_REG`==input$selectAttrGeo |
+                   `NOM_DEPT`==input$selectAttrGeo)} 
   
-    else if(input$dechetSelectInput == "Tous les groupes" & input$geoSelectInput !="France entière"){
-      ED_dimensionDechet %>% 
-        left_join(ED_faitRepartitionPoluant,by=c("id_dim_dechet")) %>% 
-        left_join(ED_dimensionProducteurDechet,by=c("id_dim_producteur")) %>%
-        left_join(ED_dimensionGeo, by=c("id_dim_geo")) %>%
-        filter(`NOM_COM`==input$selectAttrGeo |
-                 `NOM_REG`==input$selectAttrGeo |
-                 `NOM_DEPT`==input$selectAttrGeo) %>%
-        select(`NOM DU SITE`,`GROUPE DE DECHETS`,`SOUS-GROUPE DE DECHETS`,
-               `DESCRIPTION PHYSIQUE`,`FAMILLE IN`, `VOLUME EQUIVALENT CONDITIONNE`,
-               `ACTIVITE ( Bq)`, `NOM_REG`)}
+      else if(input$dechetSelectInput == "Tous les groupes" & input$geoSelectInput !="France entière"){
+          table_temp %>%
+          filter(`NOM_COM`==input$selectAttrGeo |
+                   `NOM_REG`==input$selectAttrGeo |
+                   `NOM_DEPT`==input$selectAttrGeo)}
     
-    else if(input$dechetSelectInput != "Tous les groupes" & input$geoSelectInput =="France entière"){
-      ED_dimensionDechet %>% 
+      else if(input$dechetSelectInput != "Tous les groupes" & input$geoSelectInput =="France entière"){
+        table_temp %>%  
         filter(`GROUPE DE DECHETS`==input$selectAttrDechet|
-                 `SOUS-GROUPE DE DECHETS`==input$selectAttrDechet|
-                 `FAMILLE IN`==input$selectAttrDechet) %>% 
-        left_join(ED_faitRepartitionPoluant,by=c("id_dim_dechet")) %>% 
-        left_join(ED_dimensionProducteurDechet,by=c("id_dim_producteur")) %>%
-        left_join(ED_dimensionGeo, by=c("id_dim_geo")) %>%
+                   `SOUS-GROUPE DE DECHETS`==input$selectAttrDechet|
+                   `FAMILLE IN`==input$selectAttrDechet)}
+      table_temp %>% 
         select(`NOM DU SITE`,`GROUPE DE DECHETS`,`SOUS-GROUPE DE DECHETS`,
-               `DESCRIPTION PHYSIQUE`,`FAMILLE IN`, `VOLUME EQUIVALENT CONDITIONNE`,
-               `ACTIVITE ( Bq)`, `NOM_REG`)}
-    else {
-      ED_dimensionDechet %>% 
-        left_join(ED_faitRepartitionPoluant,by=c("id_dim_dechet")) %>% 
-        left_join(ED_dimensionProducteurDechet,by=c("id_dim_producteur")) %>%
-        left_join(ED_dimensionGeo, by=c("id_dim_geo")) %>%
-        select(`NOM DU SITE`,`GROUPE DE DECHETS`,`SOUS-GROUPE DE DECHETS`,
-               `DESCRIPTION PHYSIQUE`,`FAMILLE IN`, `VOLUME EQUIVALENT CONDITIONNE`,
-               `ACTIVITE ( Bq)`, `NOM_REG`)}
-    })
-    
-    
+                   `DESCRIPTION PHYSIQUE`,`FAMILLE IN`, `VOLUME EQUIVALENT CONDITIONNE`,
+                   `ACTIVITE ( Bq)`, `NOM_REG`)})
 
 # affichage de la carte selon critères sélectionnés  
   output$carte_ville <- renderLeaflet(
