@@ -19,7 +19,7 @@ shinyUI(fluidPage(
   sidebarLayout(
     sidebarPanel(
        radioButtons(inputId = "dechetSelectInput" ,label = "Dechets selon :",
-                    choices = list("Groupe","Sous-groupe","Famille")),
+                    choices = list("Tous les groupes","Groupe","Sous-groupe","Famille")),
        uiOutput(outputId = "dechetSelectOutput"),
        
        radioButtons(inputId = "geoSelectInput" ,label = "Afficher selon :",
