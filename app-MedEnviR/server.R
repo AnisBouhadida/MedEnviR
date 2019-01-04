@@ -6,7 +6,12 @@
 # ================================================================================
 
 library(shiny)
-library(tidyverse)  
+library(tidyverse)
+library(leaflet)
+
+temp <-inner_join(ED_faitRepartitionPoluant, ED_dimensionGeo) #jointure des faits avec les coordonnées
+#PROBLEME DANS LA TABLE DIM GEO PLUSIEURS MEMES ID POUR DIFF INSEE
+temp_sep<-temp %>% separate(`Geo Point`,c("lat","lng"),sep = ",")
 
 shinyServer(function(input, output) {
    
@@ -38,4 +43,17 @@ shinyServer(function(input, output) {
              `DESCRIPTION PHYSIQUE`,`FAMILLE IN`, `VOLUME EQUIVALENT CONDITIONNE`,
              `ACTIVITE ( Bq)`)
   })
+  city <- reactive({
+    ED_faitRepartitionPoluant %>%
+      filter(id_dim_geo %in% filter(ED_dimensionGeo, NOM_COM==input$select))})
+  
+  
+  output$carte_ville <- renderLeaflet(
+    leaflet() %>%
+      addProviderTiles("CartoDB.Positron") %>%
+      setView(lng=2.3037, lat=46.4317, zoom=5) %>%
+      addMarkers(lat=as.numeric(temp_sep$lat), lng = as.numeric(temp_sep$lng),
+                 clusterOptions = markerClusterOptions(),
+                 popup = temp_sep$`ACTIVITE ( Bq)`, 
+                 icon= makeIcon(iconUrl = "../img/radioactif.png", iconWidth = 40, iconHeight = 40)))
 })

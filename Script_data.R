@@ -88,3 +88,4 @@ library(tidyverse)
 # Nettoyage de l'environnement et des objets temporaires:
 rm(data_dechet,data_INSEE)
 rm(table_fait0,table_fait1,table_fait2,table_fait3)
+

@@ -6,25 +6,32 @@
 # ================================================================================
 
 library(shiny)
+library(tidyverse)
+library(leaflet)
+
 # UI de l'application qui explore l'entrepot de donnees:
 shinyUI(fluidPage(
   
-  # Application title
-  titlePanel("Polluants en France"),
+  titlePanel("Selectionner"),
   
+
   # Sidebar avec bouttons radio et un selectInput : 
   sidebarLayout(
     sidebarPanel(
        radioButtons(inputId = "dechetSelectInput" ,label = "Dechets selon :",
                     choices = list("Groupe","Sous-groupe","Famille")),
-       uiOutput(outputId = "dechetSelectOutput")
+       uiOutput(outputId = "dechetSelectOutput"),
+       selectInput("select", label = h3("Selectionner Ville"), 
+                   choices = sort(ED_dimensionGeo$NOM_COM), selected = 1),
+       selectInput("select", label = h3("Selectionner Region"), 
+                   choices = sort(ED_dimensionGeo$NOM_COM), selected = 1))
     ),
     
     # mainPanel avec 2 tabPanel, 1 pour la carte et l'autre pour le tableau:
     mainPanel(
-      tabsetPanel(tabPanel("Carte"),
+      tabsetPanel(tabPanel("Carte", leafletOutput("carte_ville")),
                   tabPanel("Tableau",dataTableOutput(outputId = "selectOutput"))
                   )
       )
   )
-))
+)
