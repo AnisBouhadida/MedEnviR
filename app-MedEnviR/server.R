@@ -9,29 +9,35 @@ library(shiny)
 library(tidyverse)
 library(leaflet)
 
-temp <-inner_join(ED_faitRepartitionPoluant, ED_dimensionGeo) #jointure des faits avec les coordonnées
-#PROBLEME DANS LA TABLE DIM GEO PLUSIEURS MEMES ID POUR DIFF INSEE
-temp_sep<-temp %>% separate(`Geo Point`,c("lat","lng"),sep = ",")
+
+
 
 shinyServer(function(input, output) {
    
   output$dechetSelectOutput <- renderUI({
-    
    switch(input$dechetSelectInput,
-          
           "Groupe"= selectInput(
             inputId = "selectInput",label = "Selectionnez ",
             choices = select(ED_dimensionDechet,`GROUPE DE DECHETS`)%>% drop_na()),
-          
           "Sous-groupe"= selectInput(
             inputId = "selectInput",label = "Selectionnez ",
             choices =select(ED_dimensionDechet,`SOUS-GROUPE DE DECHETS`)%>% drop_na()),
-         
           "Famille" = selectInput(
                 inputId = "selectInput",label = "Selectionnez ",
-                choices =select(ED_dimensionDechet,`FAMILLE IN`)%>% drop_na())
-          )
-    })
+                choices =select(ED_dimensionDechet,`FAMILLE IN`)%>% drop_na()))})
+  
+  output$geo <- renderUI({
+    switch(input$geoSelectInput,
+           "Region"= selectInput(
+             inputId = "selectInput",label = "Selectionner la region ",
+             choices = sort(ED_dimensionGeo$NOM_REG)),
+           "Departement"= selectInput(
+             inputId = "selectInput",label = "Selectionner le departement ",
+             choices = sort(ED_dimensionGeo$NOM_DEPT)),
+           "Commune" = selectInput(
+             inputId = "selectInput",label = "Selectionner la commune ",
+             choices = sort(ED_dimensionGeo$NOM_COM)))})
+  
   output$selectOutput <- renderDataTable({
     ED_dimensionDechet %>% 
       filter(`GROUPE DE DECHETS`==input$selectInput|
@@ -41,19 +47,16 @@ shinyServer(function(input, output) {
       left_join(ED_dimensionProducteurDechet,by=c("id_dim_producteur")) %>%
       select(`NOM DU SITE`,`GROUPE DE DECHETS`,`SOUS-GROUPE DE DECHETS`,
              `DESCRIPTION PHYSIQUE`,`FAMILLE IN`, `VOLUME EQUIVALENT CONDITIONNE`,
-             `ACTIVITE ( Bq)`)
-  })
-  city <- reactive({
-    ED_faitRepartitionPoluant %>%
-      filter(id_dim_geo %in% filter(ED_dimensionGeo, NOM_COM==input$select))})
-  
-  
+             `ACTIVITE ( Bq)`)})
+
+# affichage de la carte avec tous les points  
   output$carte_ville <- renderLeaflet(
+    left_join(ED_faitRepartitionPoluant, ED_dimensionGeo)%>%
     leaflet() %>%
-      addProviderTiles("CartoDB.Positron") %>%
+      addProviderTiles(providers$CartoDB.Positron) %>%
       setView(lng=2.3037, lat=46.4317, zoom=5) %>%
-      addMarkers(lat=as.numeric(temp_sep$lat), lng = as.numeric(temp_sep$lng),
+      addMarkers(~as.numeric(lng), ~as.numeric(lat),
                  clusterOptions = markerClusterOptions(),
-                 popup = temp_sep$`ACTIVITE ( Bq)`, 
+                 popup = ~ as.character(`ACTIVITE ( Bq)`), 
                  icon= makeIcon(iconUrl = "../img/radioactif.png", iconWidth = 40, iconHeight = 40)))
 })
