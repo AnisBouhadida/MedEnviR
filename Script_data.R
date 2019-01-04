@@ -25,26 +25,22 @@ library(tidyverse)
 # Extraction des variables interessantes et creation des dimensions:
   ED_dimensionGeo <-select(data_INSEE_clean,`Geo Point`,INSEE_COM,
                            NOM_COM,NOM_DEPT,NOM_REG,Code_postal)%>% tbl_df() %>% 
-                    add_column(id_dim_geo=runif(nrow(data_INSEE_clean),min=1, max=40000))%>%
-    distinct(`Geo Point`,INSEE_COM,NOM_COM,.keep_all = TRUE) %>% separate(`Geo Point`,c("lat","lng"),sep=",")
+    rowid_to_column("id_dim_geo") %>% distinct(`Geo Point`,INSEE_COM,NOM_COM,.keep_all = TRUE) %>% 
+    separate(`Geo Point`,c("lat","lng"),sep=",")
   
   ED_dimensionDechet <- select(data_dechet_clean,`GROUPE DE DECHETS`,
                               `SOUS-GROUPE DE DECHETS`,`DESCRIPTION PHYSIQUE`,
-                               CATEGORIE,`FAMILLE IN`) %>% tbl_df() %>%
-                        add_column(id_dim_dechet=runif(nrow(data_dechet_clean), 
-                                         min=1, max=7000)) %>%
+                               CATEGORIE,`FAMILLE IN`) %>% tbl_df() %>% rowid_to_column("id_dim_dechet")%>%
     distinct(`GROUPE DE DECHETS`,`SOUS-GROUPE DE DECHETS`,
              `DESCRIPTION PHYSIQUE`,CATEGORIE,`FAMILLE IN`,.keep_all = TRUE)
   
   ED_dimensionRadioActivite <- select(data_dechet_clean,`PRINCIPAUX RADIONUCLEIDES`) %>% 
-    tbl_df() %>% add_column(id_dim_radio=runif(nrow(data_dechet_clean),
-                                                     min=1, max=7000))%>%
+    tbl_df() %>% rowid_to_column("id_dim_radio")%>%
     distinct(`PRINCIPAUX RADIONUCLEIDES`,.keep_all = TRUE)
   
   ED_dimensionProducteurDechet <-select(data_dechet_clean,`NOM DU SITE`) %>% 
     tbl_df() %>% 
-    add_column(id_dim_producteur=runif(nrow(data_dechet_clean), 
-                                             min=1, max=7000))%>%
+    rowid_to_column("id_dim_producteur")%>%
     distinct(`NOM DU SITE`,.keep_all = TRUE)
   
   # Matching des id avec la table dechet:
