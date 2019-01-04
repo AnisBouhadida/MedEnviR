@@ -25,26 +25,26 @@ library(tidyverse)
 # Extraction des variables interessantes et creation des dimensions:
   ED_dimensionGeo <-select(data_INSEE_clean,`Geo Point`,INSEE_COM,
                            NOM_COM,NOM_DEPT,NOM_REG,Code_postal)%>% tbl_df() %>% 
-                    add_column(id_dim_geo=round(runif(nrow(data_INSEE_clean),min=1, max=40000)))%>%
-                    distinct(`Geo Point`,INSEE_COM,.keep_all = TRUE)
+                    add_column(id_dim_geo=runif(nrow(data_INSEE_clean),min=1, max=40000))%>%
+    distinct(`Geo Point`,INSEE_COM,NOM_COM,.keep_all = TRUE) %>% separate(`Geo Point`,c("lat","lng"),sep=",")
   
   ED_dimensionDechet <- select(data_dechet_clean,`GROUPE DE DECHETS`,
                               `SOUS-GROUPE DE DECHETS`,`DESCRIPTION PHYSIQUE`,
                                CATEGORIE,`FAMILLE IN`) %>% tbl_df() %>%
-                        add_column(id_dim_dechet=round(runif(nrow(data_dechet_clean), 
-                                         min=1, max=7000))) %>%
+                        add_column(id_dim_dechet=runif(nrow(data_dechet_clean), 
+                                         min=1, max=7000)) %>%
     distinct(`GROUPE DE DECHETS`,`SOUS-GROUPE DE DECHETS`,
              `DESCRIPTION PHYSIQUE`,CATEGORIE,`FAMILLE IN`,.keep_all = TRUE)
   
   ED_dimensionRadioActivite <- select(data_dechet_clean,`PRINCIPAUX RADIONUCLEIDES`) %>% 
-    tbl_df() %>% add_column(id_dim_radio=round(runif(nrow(data_dechet_clean),
-                                                     min=1, max=7000)))%>%
+    tbl_df() %>% add_column(id_dim_radio=runif(nrow(data_dechet_clean),
+                                                     min=1, max=7000))%>%
     distinct(`PRINCIPAUX RADIONUCLEIDES`,.keep_all = TRUE)
   
   ED_dimensionProducteurDechet <-select(data_dechet_clean,`NOM DU SITE`) %>% 
     tbl_df() %>% 
-    add_column(id_dim_producteur=round(runif(nrow(data_dechet_clean), 
-                                             min=1, max=7000)))%>%
+    add_column(id_dim_producteur=runif(nrow(data_dechet_clean), 
+                                             min=1, max=7000))%>%
     distinct(`NOM DU SITE`,.keep_all = TRUE)
   
   # Matching des id avec la table dechet:
@@ -67,8 +67,8 @@ library(tidyverse)
                                       id_dim_geo,id_dim_dechet,
                                       id_dim_radio,id_dim_producteur,`VOLUME EQUIVALENT CONDITIONNE`,`ACTIVITE ( Bq)`,MAJORATION)
   ED_faitRepartitionPoluant <-add_column(ED_faitRepartitionPoluant,
-                                         id_fait=round(runif(nrow(ED_faitRepartitionPoluant), 
-                                                             min=200, max=7000)))
+                                         id_fait=runif(nrow(ED_faitRepartitionPoluant), 
+                                                             min=200, max=7000))
 
 # Exportation de l'entrepot de donnees : 
   if (!file.exists("EntrepotDeDonnees")){
@@ -88,4 +88,3 @@ library(tidyverse)
 # Nettoyage de l'environnement et des objets temporaires:
 rm(data_dechet,data_INSEE)
 rm(table_fait0,table_fait1,table_fait2,table_fait3)
-
