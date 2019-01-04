@@ -8,29 +8,27 @@
 #
 
 library(shiny)
+library(tidyverse)
+library(leaflet)
 
 # Define UI for application that draws a histogram
 shinyUI(fluidPage(
   
-  # Application title
-  titlePanel("Polluants en France"),
+  titlePanel("Selectionner"),
   
-  # Sidebar with a slider input for number of bins 
   sidebarLayout(
     sidebarPanel(
-       sliderInput("bins",
-                   "Number of bins:",
-                   min = 1,
-                   max = 60,
-                   value = 20)
-
-    ),
+      selectInput("select", label = h3("Selectionner Ville"), 
+                  choices = sort(ED_dimensionGeo$NOM_COM), selected = 1),
+      selectInput("select", label = h3("Selectionner Region"), 
+                  choices = sort(ED_dimensionGeo$NOM_COM), selected = 1)),
     
-    # Show a plot of the generated distribution
     mainPanel(
-       plotOutput("distPlot")
+      tabsetPanel(
+        tabPanel("Carte", leafletOutput("carte_ville")),
+        tabPanel("Table"))
     )
   )
 ))
 
-bravo
+
