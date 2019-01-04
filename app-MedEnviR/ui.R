@@ -30,7 +30,7 @@ shinyUI(fluidPage(
     # mainPanel avec 2 tabPanel, 1 pour la carte et l'autre pour le tableau:
     mainPanel(
       tabsetPanel(tabPanel("Carte", leafletOutput("carte_ville")),
-                  tabPanel("Tableau",dataTableOutput(outputId = "selectOutput"))
+                  tabPanel("Tableau",dataTableOutput(outputId = "tableSelectOutput"))
                   )
       )
   )
