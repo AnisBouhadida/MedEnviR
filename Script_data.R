@@ -20,8 +20,16 @@ library(tidyverse)
   
 # Nettoyage des donnees:
   data_dechet_clean <- unique(data_dechet)
+  
+  # Transformation des code INSEE a 6 chiffres en code a 5 chiffres: 
+  for (i in 1:nrow(data_dechet_clean)){
+    if(str_length(data_dechet_clean$`CODE INSEE`[i] )>5){
+      data_dechet_clean$`CODE INSEE`[i]<- data_dechet_clean$`CODE INSEE`[i] %>% str_replace("0","")
+    }
+  }
+  
   data_INSEE_clean <- unique(data_INSEE)
-
+  
 # Extraction des variables interessantes et creation des dimensions:
   ED_dimensionGeo <-select(data_INSEE_clean,`Geo Point`,INSEE_COM,
                            NOM_COM,NOM_DEPT,NOM_REG,Code_postal)%>% tbl_df() %>% 
@@ -33,6 +41,8 @@ library(tidyverse)
                                CATEGORIE,`FAMILLE IN`) %>% tbl_df() %>% rowid_to_column("id_dim_dechet")%>%
     distinct(`GROUPE DE DECHETS`,`SOUS-GROUPE DE DECHETS`,
              `DESCRIPTION PHYSIQUE`,CATEGORIE,`FAMILLE IN`,.keep_all = TRUE)
+  
+  
   
   ED_dimensionRadioActivite <- select(data_dechet_clean,`PRINCIPAUX RADIONUCLEIDES`) %>% 
     tbl_df() %>% rowid_to_column("id_dim_radio")%>%
@@ -62,9 +72,7 @@ library(tidyverse)
   ED_faitRepartitionPoluant <- select(table_fait3,
                                       id_dim_geo,id_dim_dechet,
                                       id_dim_radio,id_dim_producteur,`VOLUME EQUIVALENT CONDITIONNE`,`ACTIVITE ( Bq)`,MAJORATION)
-  ED_faitRepartitionPoluant <-add_column(ED_faitRepartitionPoluant,
-                                         id_fait=runif(nrow(ED_faitRepartitionPoluant), 
-                                                             min=200, max=7000))
+  ED_faitRepartitionPoluant <-rowid_to_column(ED_faitRepartitionPoluant,"id_fait")
 
 # Exportation de l'entrepot de donnees : 
   if (!file.exists("EntrepotDeDonnees")){
