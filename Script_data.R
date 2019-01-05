@@ -21,27 +21,36 @@ library(tidyverse)
 # Nettoyage des donnees:
   data_dechet_clean <- unique(data_dechet)
   
-  # Transformation des codes INSEE a 6 chiffres en code a 5 chiffres(Departement outre-mer): 
-  for (i in 1:nrow(data_dechet_clean)){
-    if(str_length(data_dechet_clean$`CODE INSEE`[i] )>5){
-        data_dechet_clean$`CODE INSEE`[i]<- data_dechet_clean$`CODE INSEE`[i] %>% str_replace("0","")
-      }
-  }
-  # Transformation des codes INSEE de PARIS(Ajout de l'arrondissement):
-  for (i in 1:nrow(data_dechet_clean)){
-    data_dechet_clean$DEPARTEMENT[i]<- as.character(data_dechet_clean$DEPARTEMENT[i])
+  # Transformation des codes INSEE: 
+  for (i in 1:nrow(data_dechet_clean))
+    { 
+    #DOM/TOM sauf GUYANNE:
+      if(str_length(data_dechet_clean$`CODE INSEE`[i] )>5){
+          data_dechet_clean$`CODE INSEE`[i]<- data_dechet_clean$`CODE INSEE`[i] %>% str_replace("0","")}
     
-    if(data_dechet_clean$DEPARTEMENT[i]== "75" & !is.na(data_dechet_clean$DEPARTEMENT[i])){
-      num_arr <- data_dechet_clean$VILLE[i] %>% str_extract_all("\\d") %>% unlist() %>% paste(collapse='')
+    #PARIS-LYON-MARSEILLE:
+      data_dechet_clean$DEPARTEMENT[i]<- as.character(data_dechet_clean$DEPARTEMENT[i])
       
-      data_dechet_clean$`CODE INSEE`[i]<- data_dechet_clean$`CODE INSEE`[i] %>% str_replace("056","")%>%
-        paste("1",sep = "")%>% paste(num_arr,sep = "")
-    }
+      switch (data_dechet_clean$DEPARTEMENT[i],
+              "75" = {
+                num_arr <- data_dechet_clean$VILLE[i] %>% str_extract_all("\\d") %>% 
+                  unlist() %>% paste(collapse='')
+                data_dechet_clean$`CODE INSEE`[i]<- data_dechet_clean$`CODE INSEE`[i] %>% 
+                  str_replace("056","") %>% 
+                  paste("1",sep = "")%>% 
+                  paste(num_arr,sep = "")
+              },
+              "69" = {
+                data_dechet_clean$`CODE INSEE`[i]<- data_dechet_clean$`CODE INSEE`[i] %>% 
+                  str_replace("69123","69381")
+              },
+              "13" = {
+                data_dechet_clean$`CODE INSEE`[i]<- data_dechet_clean$`CODE INSEE`[i] %>% 
+                  str_replace("13055","13201")
+              })
   }
- 
-  
+
   data_INSEE_clean <- unique(data_INSEE)
-  
 # Extraction des variables interessantes et creation des dimensions:
   ED_dimensionGeo <-select(data_INSEE_clean,`Geo Point`,INSEE_COM,
                            NOM_COM,NOM_DEPT,NOM_REG,Code_postal, CODE_DEPT)%>% tbl_df() %>% 
@@ -81,8 +90,12 @@ library(tidyverse)
 # Creation du fait :
   ED_faitRepartitionPoluant <- select(table_fait3,
                                       id_dim_geo,id_dim_dechet,
-                                      id_dim_radio,id_dim_producteur,`VOLUME EQUIVALENT CONDITIONNE`,`ACTIVITE ( Bq)`,MAJORATION)
+                                      id_dim_radio,id_dim_producteur,
+                                      `VOLUME EQUIVALENT CONDITIONNE`,
+                                      `ACTIVITE ( Bq)`,MAJORATION) %>% drop_na(id_dim_geo)
   ED_faitRepartitionPoluant <-rowid_to_column(ED_faitRepartitionPoluant,"id_fait")
+  
+  
 
 # Exportation de l'entrepot de donnees : 
   if (!file.exists("EntrepotDeDonnees")){
