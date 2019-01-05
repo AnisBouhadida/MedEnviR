@@ -21,18 +21,30 @@ library(tidyverse)
 # Nettoyage des donnees:
   data_dechet_clean <- unique(data_dechet)
   
-  # Transformation des code INSEE a 6 chiffres en code a 5 chiffres: 
+  # Transformation des codes INSEE a 6 chiffres en code a 5 chiffres(Departement outre-mer): 
   for (i in 1:nrow(data_dechet_clean)){
     if(str_length(data_dechet_clean$`CODE INSEE`[i] )>5){
-      data_dechet_clean$`CODE INSEE`[i]<- data_dechet_clean$`CODE INSEE`[i] %>% str_replace("0","")
+        data_dechet_clean$`CODE INSEE`[i]<- data_dechet_clean$`CODE INSEE`[i] %>% str_replace("0","")
+      }
+  }
+  # Transformation des codes INSEE de PARIS(Ajout de l'arrondissement):
+  for (i in 1:nrow(data_dechet_clean)){
+    data_dechet_clean$DEPARTEMENT[i]<- as.character(data_dechet_clean$DEPARTEMENT[i])
+    
+    if(data_dechet_clean$DEPARTEMENT[i]== "75" & !is.na(data_dechet_clean$DEPARTEMENT[i])){
+      num_arr <- data_dechet_clean$VILLE[i] %>% str_extract_all("\\d") %>% unlist() %>% paste(collapse='')
+      
+      data_dechet_clean$`CODE INSEE`[i]<- data_dechet_clean$`CODE INSEE`[i] %>% str_replace("056","")%>%
+        paste("1",sep = "")%>% paste(num_arr,sep = "")
     }
   }
+ 
   
   data_INSEE_clean <- unique(data_INSEE)
   
 # Extraction des variables interessantes et creation des dimensions:
   ED_dimensionGeo <-select(data_INSEE_clean,`Geo Point`,INSEE_COM,
-                           NOM_COM,NOM_DEPT,NOM_REG,Code_postal)%>% tbl_df() %>% 
+                           NOM_COM,NOM_DEPT,NOM_REG,Code_postal, CODE_DEPT)%>% tbl_df() %>% 
     rowid_to_column("id_dim_geo") %>% distinct(`Geo Point`,INSEE_COM,NOM_COM,.keep_all = TRUE) %>% 
     separate(`Geo Point`,c("lat","lng"),sep=",")
   
@@ -41,8 +53,6 @@ library(tidyverse)
                                CATEGORIE,`FAMILLE IN`) %>% tbl_df() %>% rowid_to_column("id_dim_dechet")%>%
     distinct(`GROUPE DE DECHETS`,`SOUS-GROUPE DE DECHETS`,
              `DESCRIPTION PHYSIQUE`,CATEGORIE,`FAMILLE IN`,.keep_all = TRUE)
-  
-  
   
   ED_dimensionRadioActivite <- select(data_dechet_clean,`PRINCIPAUX RADIONUCLEIDES`) %>% 
     tbl_df() %>% rowid_to_column("id_dim_radio")%>%
@@ -56,7 +66,7 @@ library(tidyverse)
   # Matching des id avec la table dechet:
 
   table_fait0 <- left_join(data_dechet_clean,ED_dimensionGeo, 
-                           by= c("CODE INSEE"="INSEE_COM"))
+                           by=c("CODE INSEE"="INSEE_COM"))
   
   table_fait1 <- left_join(table_fait0,ED_dimensionDechet, 
                            by= c("GROUPE DE DECHETS","SOUS-GROUPE DE DECHETS",
@@ -91,4 +101,4 @@ library(tidyverse)
 
 # Nettoyage de l'environnement et des objets temporaires:
 rm(data_dechet,data_INSEE)
-rm(table_fait0,table_fait1,table_fait2,table_fait3)
+rm(table_fait0,table_fait1,table_fait2,table_fait3,i)
