@@ -67,21 +67,23 @@ shinyServer(function(input, output) {
                  `NOM_REG`==input$selectAttrGeo |
                  `NOM_DEPT`==input$selectAttrGeo|
                  `NOM DU SITE`==input$selectAttrGeo)}
+    
     else if(input$dechetSelectInput == "Tous les groupes" & input$geoSelectInput !="France entière"){
-      re_temp <- re_temp1() %>%
-        filter(`NOM_COM`==input$selectAttrGeo |
-                 `NOM_REG`==input$selectAttrGeo |
-                 `NOM_DEPT`==input$selectAttrGeo|
-                  `NOM DU SITE`==input$selectAttrGeo)}
+      switch (input$geoSelectInput,
+              "Commune" = re_temp <- re_temp1() %>% filter(`NOM_COM`==input$selectAttrGeo ),
+              "Region" = re_temp <- re_temp1() %>% filter(`NOM_REG`==input$selectAttrGeo ),
+              "Departement" = re_temp <- re_temp1() %>% filter(`NOM_DEPT`==input$selectAttrGeo ),
+              "Site" = re_temp <- re_temp1() %>% filter(`NOM DU SITE`==input$selectAttrGeo ))}
+    
     else if(input$dechetSelectInput != "Tous les groupes" & input$geoSelectInput =="France entière"){
-      re_temp <- re_temp1() %>% 
-        filter(`GROUPE DE DECHETS`==input$selectAttrDechet|
-                 `SOUS-GROUPE DE DECHETS`==input$selectAttrDechet|
-                 `FAMILLE IN`==input$selectAttrDechet)}
-    else {
-      re_temp<- re_temp1()}
-    return (re_temp)
-    })
+      switch (input$dechetSelectInput,
+              "Groupe" = re_temp <- re_temp1() %>% filter(`GROUPE DE DECHETS`==input$selectAttrDechet),
+              "Sous-groupe" = re_temp <- re_temp1() %>% filter(`SOUS-GROUPE DE DECHETS`==input$selectAttrDechet),
+              "Sous-groupe" = re_temp <- re_temp1() %>% filter(`FAMILLE IN`==input$selectAttrDechet))}
+    
+    else {re_temp<- re_temp1()}
+    
+    return (re_temp)})
   
   # affichage de la table
   output$tableSelectOutput <- renderDataTable({
