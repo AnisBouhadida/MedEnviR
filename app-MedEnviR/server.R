@@ -9,23 +9,28 @@ library(shiny)
 library(tidyverse)
 library(leaflet)
 
-
-
-
 shinyServer(function(input, output) {
   
 #permettre de renvoyer à l'utilisateur liste de choix pour les groupes 
   output$dechetSelectOutput <- renderUI({
    switch(input$dechetSelectInput,
-          "Groupe"= selectInput(
-            inputId = "selectAttrDechet",label = h3("Selectionner un groupe de déchet "),
-            choices = select(ED_dimensionDechet,`GROUPE DE DECHETS`)%>% drop_na()),
-          "Sous-groupe"= selectInput(
-            inputId = "selectAttrDechet",label = h3("Selectionner un sous-groupe de déchet "),
-            choices =select(ED_dimensionDechet,`SOUS-GROUPE DE DECHETS`)%>% drop_na()),
-          "Famille" = selectInput(
-                inputId = "selectAttrDechet",label = h3("Selectionner une famille de déchet "),
-                choices =select(ED_dimensionDechet,`FAMILLE IN`)%>% drop_na()))})
+          "Groupe"= {
+                  selectInput(
+                    inputId = "selectAttrDechet",label = h3("Selectionner un groupe de déchet "),
+                    choices = select(ED_dimensionDechet,`GROUPE DE DECHETS`)%>% drop_na())
+            },
+          "Sous-groupe"= {
+                  selectInput(
+                    inputId = "selectAttrDechet",label = h3("Selectionner un sous-groupe de déchet "),
+                    choices =select(ED_dimensionDechet,`SOUS-GROUPE DE DECHETS`)%>% drop_na())
+            },
+          "Famille" = {
+                  selectInput(
+                      inputId = "selectAttrDechet",label = h3("Selectionner une famille de déchet "),
+                      choices =select(ED_dimensionDechet,`FAMILLE IN`)%>% drop_na())
+            }
+          )
+    })
   
 #permettre de renvoyer à l'utilisateur liste de choix pour les localisations
   output$geo <- renderUI({
