@@ -22,7 +22,7 @@ library(naniar)
   data_radon <- read_delim(file = "./data/radon.csv", ";", 
                            locale = locale(encoding = "ISO-8859-1"),na=c("","NA"), 
                            escape_double = F, trim_ws = F) %>% tbl_df()
-  
+
 # Nettoyage des donnees:
   data_dechet_clean <- unique(data_dechet)
   data_INSEE_clean <- unique(data_INSEE)
@@ -58,8 +58,7 @@ library(naniar)
   }
 
 # Extraction des variables interessantes et creation des dimensions:
-  Radon_cas <- select(data_radon_clean, insee_com , classe_potentiel)%>% 
-    tbl_df() %>%unique()
+  Radon_cas <- select(data_radon_clean, insee_com , classe_potentiel) %>% tbl_df() %>% unique()
   
   ED_dimensionGeo <-select(data_INSEE_clean,`Geo Point`,INSEE_COM,
                            NOM_COM,NOM_DEPT,NOM_REG,Code_postal, CODE_DEPT)%>% tbl_df() %>% 
@@ -83,6 +82,9 @@ library(naniar)
                                         tbl_df() %>% 
                                         rowid_to_column("id_dim_producteur")%>%
                                         distinct(`NOM DU SITE`,.keep_all = TRUE)
+  
+  data_radon_carte <- select(ED_dimensionGeo,INSEE_COM,
+                              NOM_COM,lat,lng)%>% inner_join(Radon_cas,by=c("INSEE_COM"="insee_com"))
   
   # Matching des id avec la table dechet:
   table_fait0 <- left_join(data_dechet_clean,ED_dimensionGeo, 
