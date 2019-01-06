@@ -6,6 +6,7 @@ library(sf)
 library(sp)
 library(htmltools)
 library(htmlwidgets)
+library(leaflet)
 
 # Importation de l'effectif en France ----
 effectif_france <- read_delim("./data/effectif.france.csv", ";", escape_double = FALSE, trim_ws = TRUE)
@@ -149,12 +150,12 @@ leaflet() %>% #attention dans cette partie "()" du re_temp enlevée
                "Quantité en VEC :", re_temp$`VOLUME EQUIVALENT CONDITIONNE`, "<br/>",
                "Groupe de déchet :", re_temp$`GROUPE DE DECHETS`, "<br/>"),
              label = ~ as.character(`NOM_COM`),
-             icon= makeIcon(iconUrl = "../img/radioactif.png", iconWidth = 50, iconHeight = 50))%>%
+             icon= makeIcon(iconUrl = "./img/radioactif.png", iconWidth = 50, iconHeight = 50))%>%
   addPolygons(data= dep.sf, color = "#444444", weight = 1, smoothFactor = 0.5,
               fillColor = ~pal(ratio),
               opacity = 1.0, fillOpacity = 0.7,
               dashArray = "3",# limite en pointillé
-              label = str_c(dep.sf$NOM_REG),
+              label = str_c(dep.sf$NOM_DEPT),
               labelOptions = labelOptions(
                 style = list("font-weight" = "normal", padding = "3px 8px"),
                 textsize = "15px",
