@@ -4,7 +4,7 @@
 
 
 
-## 1. Chargement des données:
+## 1.Chargement des données:
 
 Les données utilisées sont :
 
@@ -17,7 +17,7 @@ Les données utilisées sont :
 
 Aprés télechargement des données au format .csv, ils doivent être mis dans un dossier nommé data situé dans le repertoire de travail du projet.
 
-## 1. Démarrage de l'application Shiny:
+## 1.Démarrage de l'application Shiny:
 
 Avant d'executer l'application, il faut d'abord faire executer les scripts suivants:
 
