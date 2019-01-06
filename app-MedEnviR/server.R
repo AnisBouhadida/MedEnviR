@@ -37,57 +37,54 @@ shinyServer(function(input, output) {
     switch(input$geoSelectInput,
            "Region"= selectInput(
              inputId = "selectAttrGeo",label = h3("Selectionner la region "),
-             choices = sort(re_temp1()$NOM_REG)),
+             choices = sort(data()$NOM_REG)),
            "Departement"= selectInput(
              inputId = "selectAttrGeo",label = h3("Selectionner le departement "),
-             choices = sort(re_temp1()$NOM_DEPT)),
+             choices = sort(data()$NOM_DEPT)),
            "Commune" = selectInput(
              inputId = "selectAttrGeo",label = h3("Selectionner la commune "),
-             choices = sort(re_temp1()$NOM_COM)),
-           
-           #intégration du site dans les localisations
+             choices = sort(data()$NOM_COM)),
            "Site"= selectInput(
              inputId = "selectAttrGeo",label = h3("Selectionner le site "),
-             choices = sort(re_temp1()$`NOM DU SITE`)))})
+             choices = sort(data()$`NOM DU SITE`)))})
   
 # création reactive prenant en compte les choix de l'utilisateur pour l'affiche de la carte et de la table
-  re_temp1 <- reactive({
+  data <- reactive({
     ED_faitRepartitionPoluant %>% 
       left_join(ED_dimensionDechet) %>% 
       left_join(ED_dimensionProducteurDechet) %>%
       left_join(ED_dimensionGeo)})
   
-  re_temp <- reactive({
+  filtered_dechet <- reactive({
+    switch (input$dechetSelectInput,
+            "Groupe" = filtered_dechet <- data() %>% filter(`GROUPE DE DECHETS`==input$selectAttrDechet),
+            "Sous-groupe" = filtered_dechet <- data() %>% filter(`SOUS-GROUPE DE DECHETS`==input$selectAttrDechet),
+            "Famille" = filtered_dechet <- data() %>% filter(`FAMILLE IN`==input$selectAttrDechet))
+  })
+  filtered_geo <- reactive({
+    switch (input$geoSelectInput,
+            "Commune" = filtered_geo <- data() %>% filter(`NOM_COM`==input$selectAttrGeo ),
+            "Region" = filtered_geo <- data() %>% filter(`NOM_REG`==input$selectAttrGeo ),
+            "Departement" = filtered_geo <- data() %>% filter(`NOM_DEPT`==input$selectAttrGeo),
+            "Site" = filtered_geo <- data() %>% filter(`NOM DU SITE`==input$selectAttrGeo ))
+  })
+  showed_result <- reactive({
     if(input$dechetSelectInput != "Tous les groupes" & input$geoSelectInput !="France entière"){
-      re_temp <- re_temp1() %>%
-        filter(`GROUPE DE DECHETS`==input$selectAttrDechet|
-                 `SOUS-GROUPE DE DECHETS`==input$selectAttrDechet|
-                 `FAMILLE IN`==input$selectAttrDechet) %>% 
-        filter(`NOM_COM`==input$selectAttrGeo |
-                 `NOM_REG`==input$selectAttrGeo |
-                 `NOM_DEPT`==input$selectAttrGeo|
-                 `NOM DU SITE`==input$selectAttrGeo)}
+      showed_result <- filtered_dechet() %>% inner_join(filtered_geo())}
     
     else if(input$dechetSelectInput == "Tous les groupes" & input$geoSelectInput !="France entière"){
-      switch (input$geoSelectInput,
-              "Commune" = re_temp <- re_temp1() %>% filter(`NOM_COM`==input$selectAttrGeo ),
-              "Region" = re_temp <- re_temp1() %>% filter(`NOM_REG`==input$selectAttrGeo ),
-              "Departement" = re_temp <- re_temp1() %>% filter(`NOM_DEPT`==input$selectAttrGeo ),
-              "Site" = re_temp <- re_temp1() %>% filter(`NOM DU SITE`==input$selectAttrGeo ))}
+      showed_result <- filtered_geo()} 
     
     else if(input$dechetSelectInput != "Tous les groupes" & input$geoSelectInput =="France entière"){
-      switch (input$dechetSelectInput,
-              "Groupe" = re_temp <- re_temp1() %>% filter(`GROUPE DE DECHETS`==input$selectAttrDechet),
-              "Sous-groupe" = re_temp <- re_temp1() %>% filter(`SOUS-GROUPE DE DECHETS`==input$selectAttrDechet),
-              "Sous-groupe" = re_temp <- re_temp1() %>% filter(`FAMILLE IN`==input$selectAttrDechet))}
+      showed_result <- filtered_dechet()}
     
-    else {re_temp<- re_temp1()}
+    else {showed_result<- data()}
     
-    return (re_temp)})
+    return (showed_result)})
   
   # affichage de la table
   output$tableSelectOutput <- renderDataTable({
-    re_temp() %>%  select(`NOM DU SITE`,
+    showed_result() %>%  select(`NOM DU SITE`,
                           `GROUPE DE DECHETS`,
                           `SOUS-GROUPE DE DECHETS`,
                           `DESCRIPTION PHYSIQUE`,
@@ -98,16 +95,16 @@ shinyServer(function(input, output) {
 
 # affichage de la carte   
   output$carte_ville <- renderLeaflet({
-    leaflet(data=re_temp()) %>%
+    leaflet(data=showed_result()) %>%
       addProviderTiles(providers$CartoDB.Positron) %>%
       addMarkers(~as.numeric(lng), 
                  ~as.numeric(lat),
                  clusterOptions = markerClusterOptions(),
                  popup = paste(
-                   "<b>Site : ", re_temp()$`NOM DU SITE`, "</b><br/>",
-                   "<b>Activité en Bq : ", re_temp()$`ACTIVITE ( Bq)`,"</b> <br/>", 
-                   "Quantité en VEC :", re_temp()$`VOLUME EQUIVALENT CONDITIONNE`, "<br/>",
-                   "Groupe de déchet :", re_temp()$`GROUPE DE DECHETS`, "<br/>"),
+                   "<b>Site : ", showed_result()$`NOM DU SITE`, "</b><br/>",
+                   "<b>Activité en Bq : ", showed_result()$`ACTIVITE ( Bq)`,"</b> <br/>", 
+                   "Quantité en VEC :", showed_result()$`VOLUME EQUIVALENT CONDITIONNE`, "<br/>",
+                   "Groupe de déchet :", showed_result()$`GROUPE DE DECHETS`, "<br/>"),
                  label = ~ as.character(`NOM_COM`),
                  #icon ne s'adapte pas encore à l'activité à cause des valeurs "-"
                  icon= makeIcon(iconUrl = "../img/radioactif.png", iconWidth = 50, iconHeight = 50))})
