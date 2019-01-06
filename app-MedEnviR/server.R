@@ -5,17 +5,6 @@
 # Fichier : * Contient toutes les fonctions appelee par le serveur 
 # ================================================================================
 
-library(shiny)
-library(tidyverse)
-library(leaflet)
-library(sf)
-library(epitools)
-library(ggmap)
-library(cartography)
-library(sp)
-library(htmltools)
-library(htmlwidgets)
-
 shinyServer(function(input, output,session) {
   
 #permettre de renvoyer à l'utilisateur liste de choix pour les groupes 

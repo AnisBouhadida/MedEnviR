@@ -5,12 +5,6 @@
 # Fichier : * Contient tous les elements de l'interface 
 # ================================================================================
 
-library(shiny)
-library(tidyverse)
-library(leaflet)
-library(shinythemes)
-library(DT)
-
 # UI de l'application qui explore l'entrepot de donnees:
 shinyUI(fluidPage(
   
