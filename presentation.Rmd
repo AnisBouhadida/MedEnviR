@@ -1,0 +1,491 @@
+---
+title: "Présentation Projet UE4"
+author: "Anis BOUHADIDA, Radouane ELAYACHY"
+date: "7 janvier 2019"
+output: 
+  ioslides_presentation:
+    highlight: pygments
+    keep_md: yes
+    widescreen: yes
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(naniar)
+library(shiny)
+library(leaflet)
+library(sf)
+library(epitools)
+library(ggmap)
+library(cartography)
+library(sp)
+library(htmltools)
+library(htmlwidgets)
+
+
+knitr::opts_chunk$set(echo = FALSE)
+
+data_dechet <- read_delim(file = "./data/dechets-declares-au-31-12-2016.csv", ";",
+                            locale = locale(encoding = "ISO-8859-1"),na=c("","NA"), 
+                            escape_double = F, trim_ws = F) %>% tbl_df()
+  
+  data_INSEE <- read_delim(file = "./data/code-postal-code-insee-2015.csv", ";", 
+                           locale = locale(encoding = "ISO-8859-1"),na=c("","NA"), 
+                           escape_double = F, trim_ws = F) %>% tbl_df()
+  
+  data_radon <- read_delim(file = "./data/radon.csv", ";", 
+                           locale = locale(encoding = "ISO-8859-1"),na=c("","NA"), 
+                           escape_double = F, trim_ws = F) %>% tbl_df()
+```
+
+## Création de l'entrepôt de données:
+
+- Etape 1 : Importation des données
+
+```{r echo=T, eval= F}
+data_dechet <- read_delim(file = "./data/dechets-declares-au-31-12-2016.csv", ";",
+                            locale = locale(encoding = "ISO-8859-1"),na=c("","NA"), 
+                            escape_double = F, trim_ws = F) %>% tbl_df()
+
+```
+***
+- Etape 2 : Nettoyage des données (suppression des redondances)
+
+```{r include=T,echo=T, results='hide'}
+  data_dechet_clean <- unique(data_dechet)
+  data_INSEE_clean <- unique(data_INSEE)
+  data_radon_clean <- unique(data_radon)
+```
+- Etape 3 : Transformation des codes INSEE dans les données des déchets
+***
+```{r include=T, echo=T, results='hide'}
+
+for (i in 1:nrow(data_dechet_clean)){ 
+    #DOM/TOM sauf GUYANNE:
+      if(str_length(data_dechet_clean$`CODE INSEE`[i] )>5){
+          data_dechet_clean$`CODE INSEE`[i]<- data_dechet_clean$`CODE INSEE`[i] %>% str_replace("0","")}
+    
+    #PARIS-LYON-MARSEILLE:
+      data_dechet_clean$DEPARTEMENT[i]<- as.character(data_dechet_clean$DEPARTEMENT[i])
+      
+      switch (data_dechet_clean$DEPARTEMENT[i],
+              "75" = {
+                num_arr <- data_dechet_clean$VILLE[i] %>% str_extract_all("\\d") %>% 
+                  unlist() %>% paste(collapse='')
+                data_dechet_clean$`CODE INSEE`[i]<- data_dechet_clean$`CODE INSEE`[i] %>% 
+                  str_replace("056","") %>% 
+                  paste("1",sep = "")%>% 
+                  paste(num_arr,sep = "")},
+              "69" = {
+                data_dechet_clean$`CODE INSEE`[i]<- data_dechet_clean$`CODE INSEE`[i] %>% 
+                  str_replace("69123","69381")},
+              "13" = {
+                data_dechet_clean$`CODE INSEE`[i]<- data_dechet_clean$`CODE INSEE`[i] %>% 
+                  str_replace("13055","13201")})}
+```
+***
+- Etape 4: Extraction des variables et creation des dimensions
+```{r include=T, echo=T}
+Radon_cas <- select(data_radon_clean, insee_com , classe_potentiel) %>% tbl_df() %>% unique()
+```
+***
+```{r include=T, echo=T, results='hide'}
+ ED_dimensionGeo <-select(data_INSEE_clean,`Geo Point`,INSEE_COM,
+                           NOM_COM,NOM_DEPT,NOM_REG,Code_postal, CODE_DEPT)%>% tbl_df() %>% 
+                           rowid_to_column("id_dim_geo") %>% 
+                           distinct(`Geo Point`,INSEE_COM,NOM_COM,.keep_all = TRUE) %>% 
+                           separate(`Geo Point`,c("lat","lng"),sep=",") %>%
+                           left_join(Radon_cas,by=c("INSEE_COM"="insee_com"))
+
+ED_dimensionDechet <- select(data_dechet_clean,`GROUPE DE DECHETS`,
+                              `SOUS-GROUPE DE DECHETS`,`DESCRIPTION PHYSIQUE`,
+                               CATEGORIE,`FAMILLE IN`) %>% tbl_df() %>%
+                               rowid_to_column("id_dim_dechet")%>%
+                               distinct(`GROUPE DE DECHETS`,`SOUS-GROUPE DE DECHETS`,
+                                        `DESCRIPTION PHYSIQUE`,CATEGORIE,`FAMILLE IN`,.keep_all = TRUE)
+```
+***
+```{r include=T, echo=T, results='hide'}
+ED_dimensionRadioActivite <- select(data_dechet_clean,`PRINCIPAUX RADIONUCLEIDES`) %>% 
+                                      tbl_df() %>% rowid_to_column("id_dim_radio")%>%
+                                      distinct(`PRINCIPAUX RADIONUCLEIDES`,.keep_all = TRUE)
+  
+ED_dimensionProducteurDechet <-select(data_dechet_clean,`NOM DU SITE`) %>% 
+                                        tbl_df() %>% 
+                                        rowid_to_column("id_dim_producteur")%>%
+                                        distinct(`NOM DU SITE`,.keep_all = TRUE)
+```
+***
+```{r include=T, echo=T }
+data_radon_carte <- select(ED_dimensionGeo,INSEE_COM,
+                             NOM_COM,lat,lng)%>% inner_join(Radon_cas,by=c("INSEE_COM"="insee_com"))
+```
+***
+- Etape 5 : création du fait 
+```{r include=T, echo=T, results='hide'}
+table_fait0 <- left_join(data_dechet_clean,ED_dimensionGeo, 
+                           by=c("CODE INSEE"="INSEE_COM"))
+  
+  table_fait1 <- left_join(table_fait0,ED_dimensionDechet, 
+                           by= c("GROUPE DE DECHETS","SOUS-GROUPE DE DECHETS",
+                                 "DESCRIPTION PHYSIQUE","CATEGORIE","FAMILLE IN"))
+  
+  table_fait2 <- left_join(table_fait1,ED_dimensionRadioActivite, 
+                           by= c("PRINCIPAUX RADIONUCLEIDES"))
+  
+  table_fait3 <- left_join(table_fait2,ED_dimensionProducteurDechet, 
+                           by= c("NOM DU SITE"))
+```
+***
+```{r include=T, echo=T, results='hide'}
+ED_faitRepartitionPoluant <- select(table_fait3,
+                                      id_dim_geo,id_dim_dechet,
+                                      id_dim_radio,id_dim_producteur,
+                                      `VOLUME EQUIVALENT CONDITIONNE`,
+                                      `ACTIVITE ( Bq)`) %>% 
+                               drop_na(id_dim_geo) %>%
+                               rowid_to_column("id_fait") %>% 
+                               replace_with_na(replace = list(`VOLUME EQUIVALENT CONDITIONNE`="-",
+                                                              `ACTIVITE ( Bq)`="-"))
+```
+***
+- Etape 6 : Exportation de l'entrpôt sous format .csv
+```{r include=T, echo=T, results='hide'}
+if (!file.exists("EntrepotDeDonnees")){dir.create("EntrepotDeDonnees")}
+  
+  write.csv(ED_dimensionDechet,file = "./EntrepotDeDonnees/ED_dimensionDechet.csv", 
+            row.names = FALSE)
+  write.csv(ED_dimensionGeo,file = "./EntrepotDeDonnees/ED_dimensionGeo.csv", 
+            row.names = FALSE)
+  write.csv(ED_dimensionProducteurDechet,file = "./EntrepotDeDonnees/ED_dimensionProducteurDechet.csv", 
+            row.names = FALSE)
+  write.csv(ED_dimensionRadioActivite,file = "./EntrepotDeDonnees/ED_dimensionRadioActivite.csv", 
+            row.names = FALSE)
+  write.csv(ED_faitRepartitionPoluant,file = "./EntrepotDeDonnees/ED_faitRepartitionPoluant.csv", 
+            row.names = FALSE)
+```
+
+```{r include=FALSE}
+rm(data_dechet,data_INSEE,data_radon)
+rm(Radon_cas,table_fait0,table_fait1,table_fait2,table_fait3,i,num_arr)
+
+
+effectif_france <- read_delim("./data/effectif.france.csv", ";", 
+                              locale = locale(encoding = "ISO-8859-1"),na=c("","NA"), 
+                              escape_double = FALSE, trim_ws = TRUE)
+
+evenements <- read_delim("./data/evenements.csv", ";", 
+                         locale = locale(encoding = "ISO-8859-1"),na=c("","NA"),
+                         escape_double = FALSE, trim_ws = TRUE)
+
+effectif_departement <- read_delim("./data/effectif.departement.csv", ";", 
+                                   locale = locale(encoding = "ISO-8859-1"),na=c("","NA"),
+                                   escape_double = FALSE, trim_ws = TRUE)
+
+data_departement <- read_sf("data/cartes/DEPARTEMENT.shp") %>% select(ID_GEOFLA,CODE_DEPT,NOM_DEPT,NOM_REG,geometry)
+
+# Ajustement direct de toute la table selon effectif par departement et France entiere:
+ratio_vector <- vector()
+for (i in colnames(evenements[,-1])) {
+  ratio_vector <- append(ratio_vector, 
+                         round(ageadjust.direct(count = evenements[,i], 
+                                                pop = effectif_departement[,i], 
+                                                stdpop = effectif_france[,2])["adj.rate"] *10^5, 2))} 
+standdirect_dep <- tibble(data_departement = colnames(evenements[,-1]), ratio = ratio_vector)
+
+# jointure donnees carto et les taux standardises d'evenements par departement:
+data_departement_ordre <- sort(data_departement$NOM_DEPT)
+standdirect_dep <- standdirect_dep %>% arrange(data_departement) %>% mutate(data_departement = data_departement_ordre)
+
+rm(ratio_vector,i,data_departement_ordre)
+data_departement <- left_join(data_departement, standdirect_dep, by = c('NOM_DEPT' = 'data_departement'))
+```
+
+## Création de l'application shiny
+***
+```{r include=T}
+# UI de l'application qui explore l'entrepot de donnees:
+ui <-fluidPage(
+  
+  titlePanel(h1("Déchets radioactif et émission naturelle de Radon en France")),
+
+  # Sidebar avec bouttons radio et un selectInput : 
+  sidebarLayout(
+    sidebarPanel(
+        
+       radioButtons(inputId = "dechetSelectInput" ,label = h2("Dechets selon :"),
+                    choices = list("Tous les groupes","Groupe","Sous-groupe","Famille")),
+       uiOutput(outputId = "dechetSelectOutput"),
+       
+       radioButtons(inputId = "geoSelectInput" ,label = h2("Afficher selon :"),
+                    choices = list("France entière","Region","Departement","Commune","Site")),
+       uiOutput("geo")),
+    
+    # mainPanel avec 4 tabPanel:
+    mainPanel(
+      tabsetPanel(id="dataViz",
+                  tabPanel("Carte",value = "a", leafletOutput("carte_ville")),
+                  tabPanel("Tableau",value = "b",dataTableOutput(outputId = "tableSelectOutput")),
+                  tabPanel("Carte incidence",value = "c",plotOutput("carte_cartography"))
+                  )
+      )
+  )
+)
+
+server <- function(input, output, session) {
+  
+#permettre de renvoyer à l'utilisateur liste de choix pour les groupes 
+  output$dechetSelectOutput <- renderUI({
+   switch(input$dechetSelectInput,
+          "Groupe"= {
+                  selectInput(
+                    inputId = "selectAttrDechet",label = h3("Selectionner un groupe de déchet "),
+                    choices = select(ED_dimensionDechet,`GROUPE DE DECHETS`)%>% drop_na())
+            },
+          "Sous-groupe"= {
+                  selectInput(
+                    inputId = "selectAttrDechet",label = h3("Selectionner un sous-groupe de déchet "),
+                    choices =select(ED_dimensionDechet,`SOUS-GROUPE DE DECHETS`)%>% drop_na())
+            },
+          "Famille" = {
+                  selectInput(
+                      inputId = "selectAttrDechet",label = h3("Selectionner une famille de déchet "),
+                      choices =select(ED_dimensionDechet,`FAMILLE IN`)%>% drop_na())
+            }
+          )
+    })
+  
+  observe({
+    if(input$dataViz == "c"){
+      updateRadioButtons(session,inputId = "geoSelectInput",
+                         choices = list("France entière","Region"))
+    }
+    if(input$dataViz == "a" | input$dataViz == "b"){
+      updateRadioButtons(session,inputId = "geoSelectInput",
+                         choices = list("France entière","Region","Departement","Commune","Site"))
+    }
+  })
+  
+  
+#permettre de renvoyer à l'utilisateur liste de choix pour les localisations
+  output$geo <- renderUI({
+    switch(input$geoSelectInput,
+           "Region"= selectInput(
+             inputId = "selectAttrGeo",label = h3("Selectionner la region "),
+             choices = sort(data()$NOM_REG)),
+           "Departement"= selectInput(
+             inputId = "selectAttrGeo",label = h3("Selectionner le departement "),
+             choices = sort(data()$NOM_DEPT)),
+           "Commune" = selectInput(
+             inputId = "selectAttrGeo",label = h3("Selectionner la commune "),
+             choices = sort(data()$NOM_COM)),
+           "Site"= selectInput(
+             inputId = "selectAttrGeo",label = h3("Selectionner le site "),
+             choices = sort(data()$`NOM DU SITE`)))})
+  
+# création reactive prenant en compte les choix de l'utilisateur pour l'affiche de la carte et de la table
+  data <- reactive({
+    ED_faitRepartitionPoluant %>% 
+      left_join(ED_dimensionDechet) %>% 
+      left_join(ED_dimensionProducteurDechet) %>%
+      left_join(ED_dimensionGeo)
+    })
+  
+  filtered_dechet <- reactive({
+    switch (input$dechetSelectInput,
+            "Groupe" = filtered_dechet <- data() %>% filter(`GROUPE DE DECHETS`==input$selectAttrDechet),
+            "Sous-groupe" = filtered_dechet <- data() %>% filter(`SOUS-GROUPE DE DECHETS`==input$selectAttrDechet),
+            "Famille" = filtered_dechet <- data() %>% filter(`FAMILLE IN`==input$selectAttrDechet))
+  })
+  
+  filtered_geo <- reactive({
+    switch (input$geoSelectInput,
+            "Commune" = filtered_geo <- data() %>% filter(`NOM_COM`==input$selectAttrGeo ),
+            "Region" = filtered_geo <- data() %>% filter(`NOM_REG`==input$selectAttrGeo ),
+            "Departement" = filtered_geo <- data() %>% filter(`NOM_DEPT`==input$selectAttrGeo),
+            "Site" = filtered_geo <- data() %>% filter(`NOM DU SITE`==input$selectAttrGeo ))
+  })
+  
+  showed_result <- reactive({
+    if(input$dechetSelectInput != "Tous les groupes" & input$geoSelectInput !="France entière"){
+      showed_result <- filtered_dechet() %>% inner_join(filtered_geo())}
+    
+    else if(input$dechetSelectInput == "Tous les groupes" & input$geoSelectInput !="France entière"){
+      showed_result <- filtered_geo()} 
+    
+    else if(input$dechetSelectInput != "Tous les groupes" & input$geoSelectInput =="France entière"){
+      showed_result <- filtered_dechet()}
+    
+    else {showed_result<- data()}
+  })
+  
+# affichage de la table
+  output$tableSelectOutput <- renderDataTable({
+    
+    showed_result() %>%  select(`NOM DU SITE`,`GROUPE DE DECHETS`,`SOUS-GROUPE DE DECHETS`,
+                                `DESCRIPTION PHYSIQUE`,`FAMILLE IN`, `VOLUME EQUIVALENT CONDITIONNE`,
+                                `ACTIVITE ( Bq)`, `NOM_REG`, classe_potentiel)
+  })
+  
+# affichage de la carte répartition polluants   
+  output$carte_ville <- renderLeaflet({
+
+    leaflet(data=showed_result()) %>%
+      addMeasure(       #addin pour faire des mesures sur la carte
+        position = "bottomleft",
+        primaryLengthUnit = "meters",
+        primaryAreaUnit = "sqmeters",
+        activeColor = "#3D535D",
+        completedColor = "#7D4479")%>%
+      addEasyButton(
+        easyButton(    #bouton zoom réinitialiser à vérifier si marche lorsque choix de région
+          icon="fa-globe", title="Zoom to France", #sinon changer titre
+          onClick=JS("function(btn, map){ map.setZoom(2); }"))) %>%
+      addEasyButton(
+        easyButton(
+            icon="fa-crosshairs", title="Locate Me",
+            onClick=JS("function(btn, map){ map.locate({setView: true}); }")))%>%
+      addMiniMap(
+        tiles = providers$Esri.WorldStreetMap,
+        toggleDisplay = TRUE) %>%
+      addProviderTiles(providers$CartoDB.Positron) %>%
+      addMarkers(~as.numeric(lng), 
+                 ~as.numeric(lat),
+                 clusterOptions = markerClusterOptions(),
+                 popup = paste(
+                   "<b>Site : ", showed_result()$`NOM DU SITE`, "</b><br/>",
+                   "<b>Activité en Bq : ", showed_result()$`ACTIVITE ( Bq)`,"</b> <br/>", 
+                   "Quantité en VEC :", showed_result()$`VOLUME EQUIVALENT CONDITIONNE`, "<br/>",
+                   "Groupe de déchet :", showed_result()$`GROUPE DE DECHETS`, "<br/>"),
+                 label = ~ as.character(`NOM_COM`),
+                 #icon ne s'adapte pas encore à l'activité à cause des valeurs "-"
+                 icon= makeIcon(iconUrl = "./img/radioactif.png", iconWidth = 50, iconHeight = 50))
+    })
+  data_carto <- reactive({
+    if(input$geoSelectInput !="France entière"){
+      data_carto <- data_departement %>% inner_join(filtered_geo())
+    }else {data_carto <- data_departement}
+  })
+  
+  
+# Affichage des donnees evenements sur la carte en utilisant cartography:
+  output$carte_cartography <- renderPlot({
+    
+    choroLayer(data_carto(),
+               var = 'ratio',
+               method = 'quantile',
+               col = carto.pal("orange.pal", 9), 
+               border = "black",
+               lwd = 1.5, 
+               legend.values.rnd = 1, 
+               legend.pos = 'left', 
+               legend.title.txt = 'Incidence/100000 hab.') 
+    
+    layoutLayer(title = "Incidence en 2016 de la maladie X et répartition des déchets radioactif",
+                scale = 0, 
+                frame = FALSE,
+                col = "#688994")
+    
+    # Creation des points dechets radioactifs:
+    
+    showed_result() %>% select(lng,lat) %>% drop_na() %>% st_as_sf(coords = c("lng", "lat"), crs = 4326) %>% 
+      st_transform(crs = 2154) %>%plot(pch = 20, add = TRUE, col="blue") 
+    
+  })
+  
+}
+
+shinyApp(ui, server)
+
+```
+
+***
+## Analyse cartographique:
+
+```{r include=F}
+# Ajustement direct de toute la table selon effectif par département et France entière ----
+ratio.vector <- vector()
+for (i in colnames(evenements[,-1])) {
+  ratio.vector <- append(ratio.vector, round(ageadjust.direct(count = evenements[,i], 
+                                                              pop = effectif_departement[,i], 
+                                                              stdpop = effectif_france[,2])["adj.rate"] *10^5, 2))} 
+                                                             # 10^5 : pour 100000 habitants / 2 : 2 décimales
+standdirect_dep <- tibble(dep = colnames(evenements[,-1]), 
+                          ratio = ratio.vector)
+
+# Importations données géographiques de GEOFLA des départements (car évènement/dpt)----
+dep <- st_read("data/cartes/DEPARTEMENT.shp")
+
+
+# jointure données carto et les taux standardisés d'évènements par département----
+dep_ordre <- sort(dep$NOM_DEPT)
+standdirect_dep <- standdirect_dep %>% 
+  arrange(dep) %>% 
+  mutate(dep = dep_ordre)
+dep <- left_join(dep, standdirect_dep, by = c('NOM_DEPT' = 'dep')) 
+
+re_temp<- ED_faitRepartitionPoluant %>% 
+  left_join(ED_dimensionDechet) %>% 
+  left_join(ED_dimensionProducteurDechet) %>%
+  left_join(ED_dimensionGeo)
+
+dep.sf<-st_transform(dep, "+proj=longlat +datum=WGS84") #transformation dans le mode polygon accepté par Leaflet
+
+
+couleurs <- colorNumeric("YlOrRd", dep.sf$ratio, n = 10) #palette couleur
+pal <- colorBin("YlOrRd", domain = dep.sf$ratio)
+```
+
+```{r include=T}
+leaflet() %>% #attention dans cette partie "()" du re_temp enlevée
+  addLegend(data=dep.sf, #légende à mettre en premier sinon ne sait plus quelle carte prendre
+            pal = pal,
+            values=~dep.sf$ratio, 
+            opacity = 0.7,
+            title = "Incidence/100.000 hab.") %>%
+  addMeasure(       #addin pour faire des mesures sur la carte
+    position = "bottomleft",
+    primaryLengthUnit = "meters",
+    primaryAreaUnit = "sqmeters",
+    activeColor = "#3D535D",
+    completedColor = "#7D4479")%>%
+  addEasyButton(easyButton(    #bouton zoom réinitialiser à vérifier si marche lorsque choix de région
+    icon="fa-globe", title="Zoom to France", #sinon changer titre
+    onClick=JS("function(btn, map){ map.setZoom(5); }"))) %>%
+  addEasyButton(easyButton(
+    icon="fa-crosshairs", title="Locate Me",
+    onClick=JS("function(btn, map){ map.locate({setView: true}); }")))%>%
+  
+  addMiniMap(
+    tiles = providers$Esri.WorldStreetMap,
+    toggleDisplay = TRUE)%>%
+  addProviderTiles(providers$CartoDB.Positron) %>%
+  addMarkers(data=re_temp,
+             ~as.numeric(lng), 
+             ~as.numeric(lat),
+             clusterOptions = markerClusterOptions(),
+             popup = paste(
+               "<b>Site : ", re_temp$`NOM DU SITE`, "</b><br/>",
+               "<b>Activité en Bq : ", re_temp$`ACTIVITE ( Bq)`,"</b> <br/>", 
+               "Quantité en VEC :", re_temp$`VOLUME EQUIVALENT CONDITIONNE`, "<br/>",
+               "Groupe de déchet :", re_temp$`GROUPE DE DECHETS`, "<br/>"),
+             label = ~ as.character(`NOM_COM`),
+             icon= makeIcon(iconUrl = "./img/radioactif.png", iconWidth = 50, iconHeight = 50))%>%
+  addPolygons(data= dep.sf, color = "#444444", weight = 1, smoothFactor = 0.5,
+              fillColor = ~pal(ratio),
+              opacity = 1.0, fillOpacity = 0.7,
+              dashArray = "3",# limite en pointillé
+              label = str_c(dep.sf$NOM_DEPT),
+              labelOptions = labelOptions(
+                style = list("font-weight" = "normal", padding = "3px 8px"),
+                textsize = "15px",
+                direction = "auto"),
+              # pour la surbrillance du polygone lorsque souris dessus:
+              highlightOptions = highlightOptions(color = "white", weight = 2,
+                                                  bringToFront = TRUE))
+
+```
+
+
+# Merci pour votre attention

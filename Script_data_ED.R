@@ -84,7 +84,7 @@ library(naniar)
                                         distinct(`NOM DU SITE`,.keep_all = TRUE)
   
   data_radon_carte <- select(ED_dimensionGeo,INSEE_COM,
-                              NOM_COM,lat,lng)%>% inner_join(Radon_cas,by=c("INSEE_COM"="insee_com"))
+                             NOM_COM,lat,lng)%>% inner_join(Radon_cas,by=c("INSEE_COM"="insee_com"))
   
   # Matching des id avec la table dechet:
   table_fait0 <- left_join(data_dechet_clean,ED_dimensionGeo, 
