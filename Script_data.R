@@ -126,3 +126,6 @@ library(naniar)
 # Nettoyage de l'environnement et des objets temporaires:
 rm(data_dechet,data_INSEE,data_radon)
 rm(Radon_cas,table_fait0,table_fait1,table_fait2,table_fait3,i,num_arr)
+
+#save(ED_dimensionDechet, ED_dimensionGeo, ED_dimensionProducteurDechet,
+     #ED_dimensionRadioActivite, ED_faitRepartitionPoluant, file = "fichier.RData")
