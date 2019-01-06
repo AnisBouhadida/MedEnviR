@@ -56,15 +56,8 @@ shinyServer(function(input, output) {
       left_join(ED_dimensionProducteurDechet) %>%
       left_join(ED_dimensionGeo)%>%
       left_join(dep.sf) %>% 
-      st_as_sf(sf_column_name = "geometry")
-    })
-  
-  b<- ED_faitRepartitionPoluant %>% 
-    left_join(ED_dimensionDechet) %>% 
-    left_join(ED_dimensionProducteurDechet) %>%
-    left_join(ED_dimensionGeo)%>%
-    left_join(dep.sf)
-  c<-b  %>% st_as_sf(sf_column_name = "geometry")
+      st_as_sf(sf_column_name = "geometry")})
+
   
   
   re_temp <- reactive({
