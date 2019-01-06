@@ -91,9 +91,10 @@ shinyServer(function(input, output) {
 
 # affichage de la carte   
   output$carte_ville <- renderLeaflet({
-    leaflet(data=re_temp()) %>%
+    leaflet() %>%
       addProviderTiles(providers$CartoDB.Positron) %>%
-      addMarkers(~as.numeric(lng), 
+      addMarkers(data=re_temp(),
+                 ~as.numeric(lng), 
                  ~as.numeric(lat),
                  clusterOptions = markerClusterOptions(),
                  popup = paste(
