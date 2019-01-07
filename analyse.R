@@ -32,8 +32,8 @@ dechet<-ED_faitRepartitionPoluant %>%
   left_join(ED_dimensionDechet) %>% 
   left_join(ED_dimensionProducteurDechet) %>%
   left_join(ED_dimensionGeo) 
-dechet.coor <- dechet%>%
-  dplyr::select(lng,lat,id_fait)%>%   #ajout ID fait 
+dechet.coor <- data_test%>%
+  dplyr::select(lng,lat)%>%   #ajout ID fait 
   drop_na()%>%
   st_as_sf(coords = c("lng", "lat"), crs = 4326) %>%
   st_transform(crs = 2154)
@@ -75,13 +75,13 @@ plot(dechet_IDF.coor, pch = 20, add = TRUE, col="darkblue")
 
 # affichage avec leaflet----
 #transformation dans le mode polygon accepté par Leaflet
-data_departement<-st_transform(data_departement, "+proj=longlat +datum=WGS84") 
+data_departement1<-st_transform(data_departement, "+proj=longlat +datum=WGS84") 
 
 #palette couleur
 pal <- colorBin("YlOrRd", domain = data_departement$ratio)#palette couleur
 
 leaflet() %>% #attention dans cette partie "()" du re_temp enlevée
-  addLegend(data=data_departement, #légende à mettre en premier sinon ne sait pas quelle carte prendre
+  addLegend(data=data_departement1, #légende à mettre en premier sinon ne sait pas quelle carte prendre
             pal = pal,
             values=~data_departement$ratio, 
             opacity = 0.7,
@@ -118,7 +118,7 @@ leaflet() %>% #attention dans cette partie "()" du re_temp enlevée
              label = ~ as.character(`NOM_COM`),
              icon= makeIcon(iconUrl = "../img/radioactif.png", iconWidth = 50, iconHeight = 50))%>%
   #représentation du chloropath
-  addPolygons(data= data_departement, color = "#444444", weight = 1, smoothFactor = 0.5,
+  addPolygons(data= data_departement1, color = "#444444", weight = 1, smoothFactor = 0.5,
               fillColor = ~pal(ratio),
               opacity = 1.0, fillOpacity = 0.7,
               dashArray = "3",# limite en pointillé

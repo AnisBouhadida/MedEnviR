@@ -67,3 +67,22 @@ data_departement <- right_join(data_departement, a, by = 'NOM_DEPT')
 data_departement$NOM_DEPT=nom_depback #réafectation des noms d'origine
 #spécification des colonnes x et y pour tests statistiques à partir des coordonées des centroides des départements
 data_departement<-cbind(data_departement, x=data_departement$X_CENTROID, y=data_departement$Y_CENTROID)
+
+#simplification des données que l'on utilise dans l'appli shiny pour améliorer performance
+data_test <- ED_faitRepartitionPoluant %>% 
+  left_join(ED_dimensionDechet) %>% 
+  left_join(ED_dimensionProducteurDechet) %>%
+  left_join(ED_dimensionGeo)%>%
+  select(`VOLUME EQUIVALENT CONDITIONNE`,
+         `ACTIVITE ( Bq)`,
+         `GROUPE DE DECHETS`,
+         `SOUS-GROUPE DE DECHETS`,
+         `DESCRIPTION PHYSIQUE`,
+         `FAMILLE IN`,
+         `NOM DU SITE`,
+         lat,
+         lng,
+         NOM_COM,
+         NOM_DEPT,
+         NOM_REG,
+         classe_potentiel)

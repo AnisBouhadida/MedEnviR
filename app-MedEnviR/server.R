@@ -13,17 +13,17 @@ shinyServer(function(input, output,session) {
           "Groupe"= {
                   selectInput(
                     inputId = "selectAttrDechet",label = h3("Selectionner un groupe de déchet "),
-                    choices = dplyr::select(ED_dimensionDechet,`GROUPE DE DECHETS`)%>% drop_na())
+                    choices = dplyr::select(data_test,`GROUPE DE DECHETS`)%>% drop_na())
             },
           "Sous-groupe"= {
                   selectInput(
                     inputId = "selectAttrDechet",label = h3("Selectionner un sous-groupe de déchet "),
-                    choices =dplyr:: select(ED_dimensionDechet,`SOUS-GROUPE DE DECHETS`)%>% drop_na())
+                    choices =dplyr:: select(data_test,`SOUS-GROUPE DE DECHETS`)%>% drop_na())
             },
           "Famille" = {
                   selectInput(
                       inputId = "selectAttrDechet",label = h3("Selectionner une famille de déchet "),
-                      choices =dplyr::select(ED_dimensionDechet,`FAMILLE IN`)%>% drop_na())
+                      choices =dplyr::select(data_test,`FAMILLE IN`)%>% drop_na())
             }
           )
     })
@@ -45,23 +45,20 @@ shinyServer(function(input, output,session) {
     switch(input$geoSelectInput,
            "Region"= selectInput(
              inputId = "selectAttrGeo",label = h3("Selectionner la region "),
-             choices = sort(data()$NOM_REG)),
+             choices = sort(data_departement$NOM_REG)),
            "Departement"= selectInput(
              inputId = "selectAttrGeo",label = h3("Selectionner le departement "),
-             choices = sort(data()$NOM_DEPT)),
+             choices = sort(data_departement$NOM_DEPT)),
            "Commune" = selectInput(
              inputId = "selectAttrGeo",label = h3("Selectionner la commune "),
-             choices = sort(data()$NOM_COM)),
+             choices = sort(data_departement$NOM_COM)),
            "Site"= selectInput(
              inputId = "selectAttrGeo",label = h3("Selectionner le site "),
-             choices = sort(data()$`NOM DU SITE`)))})
+             choices = sort(data_departement$`NOM DU SITE`)))})
   
 # création reactive prenant en compte les choix de l'utilisateur pour l'affiche de la carte et de la table
   data <- reactive({
-    ED_faitRepartitionPoluant %>% 
-      left_join(ED_dimensionDechet) %>% 
-      left_join(ED_dimensionProducteurDechet) %>%
-      left_join(ED_dimensionGeo)
+    data_test
     })
   
   filtered_dechet <- reactive({
@@ -136,11 +133,16 @@ shinyServer(function(input, output,session) {
     })
   data_carto <- reactive({
     if(input$geoSelectInput !="France entière"){
-      data_carto <- data_departement %>% inner_join(filtered_geo())
+      data_carto <- data_departement %>% inner_join(filtered_geo()) ### le soucis doit être dans la jointure!!
     }else {data_carto <- data_departement}
   })
-  
-  
+  # data_carto <- reactive({
+  #   if(input$geoSelectInput !="France entière"){
+  #     data_carto <- data_departement %>% filter(NOM_REG==filtered_geo()$NOM_REG)
+  #   }
+  #   else {data_carto <- data_departement}
+  # })
+
 # Affichage des donnees evenements sur la carte en utilisant cartography:
   output$carte_cartography <- renderPlot({
     
