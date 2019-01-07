@@ -6,19 +6,18 @@
 #           * Affichage des données evenements sur la carte  
 # ================================================================================
 
-effectif_france <- read_delim("./data/effectif.france.csv", ";", 
-                              locale = locale(encoding = "ISO-8859-1"),na=c("","NA"), 
+effectif_france <- read_delim("./data/effectif.france.csv", ";",na=c("","NA"), #encodage UTF-8 pour ces fichiers !!!
                               escape_double = FALSE, trim_ws = TRUE)
 
-evenements <- read_delim("./data/evenements.csv", ";", 
-                         locale = locale(encoding = "ISO-8859-1"),na=c("","NA"),
+evenements <- read_delim("./data/evenements.csv", ";",na=c("","NA"),  #encodage UTF-8 pour ces fichiers !!!
                          escape_double = FALSE, trim_ws = TRUE)
 
-effectif_departement <- read_delim("./data/effectif.departement.csv", ";", 
-                                   locale = locale(encoding = "ISO-8859-1"),na=c("","NA"),
+
+effectif_departement <- read_delim("./data/effectif.departement.csv", ";",na=c("","NA"),  #encodage UTF-8 pour ces fichiers !!!
                                    escape_double = FALSE, trim_ws = TRUE)
 
-data_departement <- read_sf("data/cartes/DEPARTEMENT.shp") %>% select(ID_GEOFLA,CODE_DEPT,NOM_DEPT,NOM_REG,geometry)
+data_departement <- st_read("./data/cartes/DEPARTEMENT.shp") %>% dplyr::select(ID_GEOFLA,CODE_DEPT,NOM_DEPT,NOM_REG,geometry,X_CENTROID, Y_CENTROID)
+                                                                    #ajout des centroides pour stats
 
 # Ajustement direct de toute la table selon effectif par departement et France entiere:
 ratio_vector <- vector()
@@ -33,5 +32,28 @@ standdirect_dep <- tibble(data_departement = colnames(evenements[,-1]), ratio = 
 data_departement_ordre <- sort(data_departement$NOM_DEPT)
 standdirect_dep <- standdirect_dep %>% arrange(data_departement) %>% mutate(data_departement = data_departement_ordre)
 
-rm(ratio_vector,i,data_departement_ordre)
+rm(data_departement_ordre)
 data_departement <- left_join(data_departement, standdirect_dep, by = c('NOM_DEPT' = 'data_departement')) 
+
+#création d'une table avec nombre observé (Observed) et nombre attendu (Expected) par département selon le ratio
+#et l'effectif de chaque département
+nbre.vector <- vector()
+for (i in colnames(evenements[,-1])) {
+  nbre.vector <- append(nbre.vector, sum(evenements[,i]))}
+eff.vector<-vector()
+for (i in colnames(effectif_departement[,-1])) {
+  eff.vector <- append(eff.vector, sum(effectif_departement[,i]))}
+a <-tibble(NOM_DEPT = colnames(evenements[,-1]), 
+           Observed = nbre.vector, 
+           effectif = eff.vector,
+           Expected= ratio_vector*eff.vector/10^5)
+
+#nomage identique des noms de département pour pouvoir faire la jointure correctement
+nom_depback <- sort(data_departement$NOM_DEPT)
+a$NOM_DEPT<-a$NOM_DEPT%>% iconv(from = "UTF-8", to="ASCII//TRANSLIT" ) %>%gsub(pattern = "\\W", "", .) %>% toupper()
+data_departement$NOM_DEPT<-data_departement$NOM_DEPT %>% gsub(pattern = "\\W", "", .)
+#jointure de la table créée avec les data département
+data_departement <- right_join(data_departement, a, by = 'NOM_DEPT')
+data_departement$NOM_DEPT=nom_depback #réafectation des noms d'origine
+#spécification des colonnes x et y pour tests statistiques à partir des coordonées des centroides des départements
+data_departement<-cbind(data_departement, x=data_departement$X_CENTROID, y=data_departement$Y_CENTROID)
