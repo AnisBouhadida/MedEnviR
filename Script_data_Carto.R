@@ -5,6 +5,16 @@
 # Fichier : * Importation et nettoyage des donnees d'effectif et des donnees geographiques  
 #           * Affichage des données evenements sur la carte  
 # ================================================================================
+library(epitools)
+library(ggmap)
+library(cartography)
+library(tidyverse)
+library(sf)
+library(sp)
+library(htmltools)
+library(htmlwidgets)
+library(leaflet)
+library(questionr)
 
 effectif_france <- read_delim("./data/effectif.france.csv", ";",na=c("","NA"), #encodage UTF-8 pour ces fichiers !!!
                               escape_double = FALSE, trim_ws = TRUE)

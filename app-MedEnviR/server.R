@@ -13,17 +13,17 @@ shinyServer(function(input, output,session) {
           "Groupe"= {
                   selectInput(
                     inputId = "selectAttrDechet",label = h3("Selectionner un groupe de déchet "),
-                    choices = select(ED_dimensionDechet,`GROUPE DE DECHETS`)%>% drop_na())
+                    choices = dplyr::select(ED_dimensionDechet,`GROUPE DE DECHETS`)%>% drop_na())
             },
           "Sous-groupe"= {
                   selectInput(
                     inputId = "selectAttrDechet",label = h3("Selectionner un sous-groupe de déchet "),
-                    choices =select(ED_dimensionDechet,`SOUS-GROUPE DE DECHETS`)%>% drop_na())
+                    choices =dplyr:: select(ED_dimensionDechet,`SOUS-GROUPE DE DECHETS`)%>% drop_na())
             },
           "Famille" = {
                   selectInput(
                       inputId = "selectAttrDechet",label = h3("Selectionner une famille de déchet "),
-                      choices =select(ED_dimensionDechet,`FAMILLE IN`)%>% drop_na())
+                      choices =dplyr::select(ED_dimensionDechet,`FAMILLE IN`)%>% drop_na())
             }
           )
     })
@@ -95,7 +95,7 @@ shinyServer(function(input, output,session) {
 # affichage de la table
   output$tableSelectOutput <- renderDataTable({
     
-    showed_result() %>%  select(`NOM DU SITE`,`GROUPE DE DECHETS`,`SOUS-GROUPE DE DECHETS`,
+    showed_result() %>%  dplyr::select(`NOM DU SITE`,`GROUPE DE DECHETS`,`SOUS-GROUPE DE DECHETS`,
                                 `DESCRIPTION PHYSIQUE`,`FAMILLE IN`, `VOLUME EQUIVALENT CONDITIONNE`,
                                 `ACTIVITE ( Bq)`, `NOM_REG`, classe_potentiel)
   })
@@ -161,7 +161,7 @@ shinyServer(function(input, output,session) {
     
     # Creation des points dechets radioactifs:
     
-    showed_result() %>% select(lng,lat) %>% drop_na() %>% st_as_sf(coords = c("lng", "lat"), crs = 4326) %>% 
+    showed_result() %>% dplyr::select(lng,lat) %>% drop_na() %>% st_as_sf(coords = c("lng", "lat"), crs = 4326) %>% 
       st_transform(crs = 2154) %>%plot(pch = 20, add = TRUE, col="blue") 
     
   })
