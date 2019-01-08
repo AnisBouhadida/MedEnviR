@@ -105,9 +105,6 @@ shinyServer(function(input, output,session) {
 # affichage de la table
   output$tableSelectOutput <- DT::renderDataTable({
     
-    # showed_result() %>%  dplyr::select(`NOM DU SITE`,`GROUPE DE DECHETS`,`SOUS-GROUPE DE DECHETS`,
-    #                             `DESCRIPTION PHYSIQUE`,`FAMILLE IN`, `VOLUME EQUIVALENT CONDITIONNE`,
-    #                             `ACTIVITE ( Bq)`, `NOM_REG`, classe_potentiel) %>%
       DT::datatable(showed_result()[, input$show_vars, drop = FALSE], options = list(orderClasses = TRUE))
   })
   
@@ -116,7 +113,7 @@ shinyServer(function(input, output,session) {
     
     
     pal <- colorBin("YlOrRd", domain = data_radon_carte$classe_potentiel)
-    #data_radon_carte <-data_radon_carte%>% left_join(filtered_geo()) %>% st_transform("+proj=longlat +datum=WGS84")
+    
     leaflet(data=showed_result()) %>%
       addMeasure(       #addin pour faire des mesures sur la carte
         position = "bottomleft",

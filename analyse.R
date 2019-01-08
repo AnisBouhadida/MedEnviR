@@ -70,18 +70,20 @@ dechet_IDF.coor <- data_test %>%
 plot(dechet_IDF.coor, pch = 20, add = TRUE, col="darkblue") 
 
 # affichage avec leaflet----
+
 #transformation dans le mode polygon accepté par Leaflet
 data_departement1<-st_transform(data_departement, "+proj=longlat +datum=WGS84") 
 
 #palette couleur
 pal <- colorBin("YlOrRd", domain = data_departement$ratio)#palette couleur
 
-leaflet() %>% #attention dans cette partie "()" du re_temp enlevée
+leaflet() %>% 
   addLegend(data=data_departement1, #légende à mettre en premier sinon ne sait pas quelle carte prendre
             pal = pal,
             values=~data_departement$ratio, 
             opacity = 0.7,
             title = "Incidence/100.000 hab.") %>%
+  
   #addin pour faire des mesures sur la carte
   addMeasure(       
     position = "bottomleft",
@@ -89,6 +91,7 @@ leaflet() %>% #attention dans cette partie "()" du re_temp enlevée
     primaryAreaUnit = "sqmeters",
     activeColor = "#3D535D",
     completedColor = "#7D4479")%>%
+  
   #bouton zoom réinitialisé 
   addEasyButton(easyButton(    
     icon="fa-globe", title="Zoom réinitialisé", 
@@ -96,11 +99,13 @@ leaflet() %>% #attention dans cette partie "()" du re_temp enlevée
   addEasyButton(easyButton(
     icon="fa-crosshairs", title="Locate Me",
     onClick=JS("function(btn, map){ map.locate({setView: true}); }")))%>%
+  
   #addin pour la minicarte dans le coin
   addMiniMap(
     tiles = providers$Esri.WorldStreetMap,
     toggleDisplay = TRUE)%>%
   addProviderTiles(providers$CartoDB.Positron) %>%
+  
   #représentation des points polluants
   addMarkers(data=data_test,
              ~as.numeric(lng), 
@@ -113,6 +118,7 @@ leaflet() %>% #attention dans cette partie "()" du re_temp enlevée
                "Groupe de déchet :", data_test$`GROUPE DE DECHETS`, "<br/>"),
              label = ~ as.character(`NOM_COM`),
              icon= makeIcon(iconUrl = "../img/radioactif.png", iconWidth = 50, iconHeight = 50))%>%
+  
   #représentation du chloropath
   addPolygons(data= data_departement1, color = "#444444", weight = 1, smoothFactor = 0.5,
               fillColor = ~pal(ratio),
@@ -126,6 +132,8 @@ leaflet() %>% #attention dans cette partie "()" du re_temp enlevée
               #pour la surbrillance du polygone lorsque souris dessus:
               highlightOptions = highlightOptions(color = "white", weight = 2,
                                                   bringToFront = TRUE))
+
+
 
 # Analyses spatiales ----
 # Nous avons donc des évènements (maladie X) par age, sexe, et la localisation (DEPARTEMENT)
@@ -141,7 +149,7 @@ library(DCluster)
 #test de permutation qu'on utilise lorsque l'on ne peut pas connaitre la distribution sous l'hypothèse nulle
 # Test de Stones
 
-region<-which(data_departement$NOM_DEPT=="HAUTE-LOIRE") #a row number  #choix dechets_test2 ou dechet ou data_dept?!
+region<-which(data_departement$NOM_DEPT=="HAUTE-LOIRE") #a row number  
 
 stone.stat(data_departement, region=region, lambda=NULL)
 stone.test(Observed~offset(log(Expected)), data_departement, model="poisson", R=99, 
