@@ -4,9 +4,11 @@
 
 # Fichier : * Contient toutes les fonctions appelee par le serveur 
 # ================================================================================
+library(DT)
 
 shinyServer(function(input, output,session) {
-  
+
+
 #permettre de renvoyer à l'utilisateur liste de choix pour les groupes 
   output$dechetSelectOutput <- renderUI({
    switch(input$dechetSelectInput,
@@ -62,6 +64,8 @@ shinyServer(function(input, output,session) {
     })
   
   filtered_dechet <- reactive({
+    # req permet d'éviter message d'erreur et ne montre la carte que si sélection faite
+    req(input$selectAttrDechet, cancelOutput = FALSE) 
     switch (input$dechetSelectInput,
             "Groupe" = filtered_dechet <- data() %>% filter(`GROUPE DE DECHETS`==input$selectAttrDechet),
             "Sous-groupe" = filtered_dechet <- data() %>% filter(`SOUS-GROUPE DE DECHETS`==input$selectAttrDechet),
@@ -69,6 +73,7 @@ shinyServer(function(input, output,session) {
   })
   
   filtered_geo <- reactive({
+    req(input$selectAttrGeo, cancelOutput = FALSE)   
     switch (input$geoSelectInput,
             "Commune" = filtered_geo <- data() %>% filter(`NOM_COM`==input$selectAttrGeo ),
             "Region" = filtered_geo <- data() %>% filter(`NOM_REG`==input$selectAttrGeo ),
@@ -78,7 +83,10 @@ shinyServer(function(input, output,session) {
   
   showed_result <- reactive({
     if(input$dechetSelectInput != "Tous les groupes" & input$geoSelectInput !="France entière"){
-      showed_result <- filtered_dechet() %>% inner_join(filtered_geo())}
+      showed_result <- filtered_dechet() %>% inner_join(filtered_geo())
+      #message si absence de données correspondantes
+      validate(
+        need(is_empty(showed_result)==TRUE , "Absence de données pour les critères choisis"))}
     
     else if(input$dechetSelectInput == "Tous les groupes" & input$geoSelectInput !="France entière"){
       showed_result <- filtered_geo()} 
@@ -90,16 +98,20 @@ shinyServer(function(input, output,session) {
   })
   
 # affichage de la table
-  output$tableSelectOutput <- renderDataTable({
+  output$tableSelectOutput <- DT::renderDataTable({
     
-    showed_result() %>%  dplyr::select(`NOM DU SITE`,`GROUPE DE DECHETS`,`SOUS-GROUPE DE DECHETS`,
-                                `DESCRIPTION PHYSIQUE`,`FAMILLE IN`, `VOLUME EQUIVALENT CONDITIONNE`,
-                                `ACTIVITE ( Bq)`, `NOM_REG`, classe_potentiel)
+    # showed_result() %>%  dplyr::select(`NOM DU SITE`,`GROUPE DE DECHETS`,`SOUS-GROUPE DE DECHETS`,
+    #                             `DESCRIPTION PHYSIQUE`,`FAMILLE IN`, `VOLUME EQUIVALENT CONDITIONNE`,
+    #                             `ACTIVITE ( Bq)`, `NOM_REG`, classe_potentiel) %>%
+      DT::datatable(showed_result()[, input$show_vars, drop = FALSE], options = list(orderClasses = TRUE))
   })
   
 # affichage de la carte répartition polluants   
   output$carte_ville <- renderLeaflet({
-
+    
+    
+    pal <- colorBin("YlOrRd", domain = data_radon_carte$classe_potentiel)
+    #data_radon_carte <-data_radon_carte%>% left_join(filtered_geo()) %>% st_transform("+proj=longlat +datum=WGS84")
     leaflet(data=showed_result()) %>%
       addMeasure(       #addin pour faire des mesures sur la carte
         position = "bottomleft",
@@ -107,18 +119,23 @@ shinyServer(function(input, output,session) {
         primaryAreaUnit = "sqmeters",
         activeColor = "#3D535D",
         completedColor = "#7D4479")%>%
+      
       addEasyButton(
-        easyButton(    #bouton zoom réinitialiser à vérifier si marche lorsque choix de région
-          icon="fa-globe", title="Zoom to France", #sinon changer titre
+        easyButton(    
+          icon="fa-globe", title="Zoom réinitialisé", 
           onClick=JS("function(btn, map){ map.setZoom(2); }"))) %>%
+      
       addEasyButton(
         easyButton(
             icon="fa-crosshairs", title="Locate Me",
             onClick=JS("function(btn, map){ map.locate({setView: true}); }")))%>%
+      
       addMiniMap(
         tiles = providers$Esri.WorldStreetMap,
         toggleDisplay = TRUE) %>%
+      
       addProviderTiles(providers$CartoDB.Positron) %>%
+      
       addMarkers(~as.numeric(lng), 
                  ~as.numeric(lat),
                  clusterOptions = markerClusterOptions(),
@@ -130,20 +147,35 @@ shinyServer(function(input, output,session) {
                  label = ~ as.character(`NOM_COM`),
                  #icon ne s'adapte pas encore à l'activité à cause des valeurs "-"
                  icon= makeIcon(iconUrl = "../img/radioactif.png", iconWidth = 50, iconHeight = 50))
+    
+    # #représentation du chloropath du radon
+    # addPolygons(data= data_radon_carte , color = "#444444", weight = 1, smoothFactor = 0.5,
+    #             fillColor = ~pal(data_radon_carte$classe_potentiel),
+    #             opacity = 1.0, fillOpacity = 0.7,
+    #             dashArray = "3")#, limite en pointillé
+                #label = str_c(data_departement$NOM_DEPT),
+                #labelOptions = labelOptions(
+                #  style = list("font-weight" = "normal", padding = "3px 8px"),
+                #  textsize = "15px",
+                #  direction = "auto"),
+                #pour la surbrillance du polygone lorsque souris dessus:
+               # highlightOptions = highlightOptions(color = "white", weight = 2,
+               #                                     bringToFront = TRUE))
     })
-  data_carto <- reactive({
-    if(input$geoSelectInput !="France entière"){
-      data_carto <- data_departement %>% inner_join(filtered_geo()) ### le soucis doit être dans la jointure!!
-    }else {data_carto <- data_departement}
-  })
-  # data_carto <- reactive({
-  #   if(input$geoSelectInput !="France entière"){
-  #     data_carto <- data_departement %>% filter(NOM_REG==filtered_geo()$NOM_REG)
-  #   }
-  #   else {data_carto <- data_departement}
-  # })
 
+  
 # Affichage des donnees evenements sur la carte en utilisant cartography:
+  #Filtration des données carto selon les données sélectionnées
+  data_carto <- reactive({
+    
+    if(input$geoSelectInput !="France entière"){
+      req(filtered_geo(),cancelOutput = FALSE) 
+      data_carto <- data_departement %>% filter(NOM_REG==unique(filtered_geo()$NOM_REG))
+    }
+    else {data_carto <- data_departement}
+  })
+  
+  #Affichage de la carte
   output$carte_cartography <- renderPlot({
     
     choroLayer(data_carto(),
@@ -161,11 +193,15 @@ shinyServer(function(input, output,session) {
                 frame = FALSE,
                 col = "#688994")
     
-    # Creation des points dechets radioactifs:
     
+    # Creation des points dechets radioactifs selon sélection utilisateur :
     showed_result() %>% dplyr::select(lng,lat) %>% drop_na() %>% st_as_sf(coords = c("lng", "lat"), crs = 4326) %>% 
       st_transform(crs = 2154) %>%plot(pch = 20, add = TRUE, col="blue") 
     
   })
   
+#table statistique
+  # output$table2SelectOutput <- DT::renderDataTable({
+  #   DT::datatable([, input$show_vars, drop = FALSE], options = list(orderClasses = TRUE))
+  # })
 })

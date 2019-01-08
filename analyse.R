@@ -28,10 +28,6 @@ layoutLayer(title = "Incidence en 2016 de la maladie X et répartition des déch
             col = "#688994") 
 
 # Création des points déchets radioactifs ----
-dechet<-ED_faitRepartitionPoluant %>% 
-  left_join(ED_dimensionDechet) %>% 
-  left_join(ED_dimensionProducteurDechet) %>%
-  left_join(ED_dimensionGeo) 
 dechet.coor <- data_test%>%
   dplyr::select(lng,lat)%>%   #ajout ID fait 
   drop_na()%>%
@@ -64,7 +60,7 @@ layoutLayer(title = paste("Incidence en 2016 de la maladie X et répartition des
             col = "#688994") 
 
 
-dechet_IDF.coor <- dechet %>%
+dechet_IDF.coor <- data_test %>%
   select(lng,lat,NOM_REG) %>%
   filter(NOM_REG=="ILE-DE-FRANCE") %>%
   drop_na() %>%
@@ -106,15 +102,15 @@ leaflet() %>% #attention dans cette partie "()" du re_temp enlevée
     toggleDisplay = TRUE)%>%
   addProviderTiles(providers$CartoDB.Positron) %>%
   #représentation des points polluants
-  addMarkers(data=dechet,
+  addMarkers(data=data_test,
              ~as.numeric(lng), 
              ~as.numeric(lat),
              clusterOptions = markerClusterOptions(),
              popup = paste(
-               "<b>Site : ", dechet$`NOM DU SITE`, "</b><br/>",
-               "<b>Activité en Bq : ", dechet$`ACTIVITE ( Bq)`,"</b> <br/>", 
-               "Quantité en VEC :", dechet$`VOLUME EQUIVALENT CONDITIONNE`, "<br/>",
-               "Groupe de déchet :", dechet$`GROUPE DE DECHETS`, "<br/>"),
+               "<b>Site : ", data_test$`NOM DU SITE`, "</b><br/>",
+               "<b>Activité en Bq : ", data_test$`ACTIVITE ( Bq)`,"</b> <br/>", 
+               "Quantité en VEC :", data_test$`VOLUME EQUIVALENT CONDITIONNE`, "<br/>",
+               "Groupe de déchet :", data_test$`GROUPE DE DECHETS`, "<br/>"),
              label = ~ as.character(`NOM_COM`),
              icon= makeIcon(iconUrl = "../img/radioactif.png", iconWidth = 50, iconHeight = 50))%>%
   #représentation du chloropath
