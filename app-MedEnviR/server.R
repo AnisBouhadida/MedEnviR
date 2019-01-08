@@ -39,6 +39,11 @@ shinyServer(function(input, output,session) {
       updateRadioButtons(session,inputId = "geoSelectInput",
                          choices = list("France entière","Region","Departement","Commune","Site"))
     }
+    if(input$dataViz == "d" ){
+      updateRadioButtons(session,inputId = "geoSelectInput",
+                         choices = list("Departement"))
+     
+    }
   })
   
   
@@ -201,7 +206,15 @@ shinyServer(function(input, output,session) {
   })
   
 #table statistique
-  # output$table2SelectOutput <- DT::renderDataTable({
-  #   DT::datatable([, input$show_vars, drop = FALSE], options = list(orderClasses = TRUE))
-  # })
+  
+  output$printSelectOutput <- renderPrint({
+    req(filtered_geo(),cancelOutput = FALSE)
+    
+    region<-which(data_departement$NOM_DEPT==filtered_geo()$NOM_DEPT)
+    stone.stat(data_departement, region=region, lambda=NULL)
+    s<-stone.test(Observed~offset(log(Expected)), data_departement, model="poisson", R=99, 
+                  region=region, lambda=NULL)
+    print(s)
+    
+  })
 })

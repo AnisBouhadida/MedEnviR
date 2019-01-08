@@ -144,9 +144,9 @@ library(DCluster)
 region<-which(data_departement$NOM_DEPT=="HAUTE-LOIRE") #a row number  #choix dechets_test2 ou dechet ou data_dept?!
 
 stone.stat(data_departement, region=region, lambda=NULL)
-s<-stone.test(Observed~offset(log(Expected)), data_departement, model="poisson", R=99, 
+stone.test(Observed~offset(log(Expected)), data_departement, model="poisson", R=99, 
            region=region, lambda=NULL)
-print(s)
+
 
 for (i in data_departement$NOM_DEPT){
   region<-which(data_departement$NOM_DEPT==i)

@@ -10,11 +10,11 @@ shinyUI(fluidPage(
   
   #choix du thème
   tags$head(
-    tags$link(rel = "stylesheet", type = "text/css", href = "https://bootswatch.com/4/sketchy/bootstrap.css")
+    tags$link(rel = "stylesheet", type = "text/css", href = "bootstrap.css")
   ),
   
   #titre de la page
-  headerPanel(h1("Déchets radioactifs et émission naturelle de Radon en France")),
+  titlePanel(h1("Déchets radioactifs et émission naturelle de Radon en France")),
   
   # Sidebar pour les choix de déchets et de région : 
   sidebarLayout(
@@ -40,9 +40,9 @@ shinyUI(fluidPage(
                                                                inline = TRUE),
                            DT::dataTableOutput(outputId = "tableSelectOutput")
                   ),
-                  tabPanel("Carte incidence",value = "c",plotOutput("carte_cartography"))#,
-                  # tabPanel("Valeurs du test de Stone",value = "d",
-                  #          DT::dataTableOutput(outputId = "table2SelectOutput"))
+                  tabPanel("Carte incidence",value = "c",plotOutput("carte_cartography")),
+                  tabPanel("Valeurs du test de Stone",value = "d",
+                          verbatimTextOutput(outputId = "printSelectOutput"))
                   )
       )
   )
